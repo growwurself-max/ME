@@ -1,8 +1,28 @@
 const bcrypt = require('bcryptjs');
-const { admin: firebaseAdmin, db } = require('../config/firebase');
+const { admin: firebaseAdmin, db, FieldValue } = require('../config/firebase');
 const { signToken } = require('../utils/jwt');
 const { unauthorized, forbidden } = require('../utils/errors');
 const { loginSchema } = require('../validation/schemas');
+
+// Keeps the users/{uid} profile document in sync. Runs server-side with the
+// Admin SDK so it is never subject to client-side Firestore security rules.
+async function syncUserProfile(uid, profile) {
+  const userDocRef = db.collection('users').doc(uid);
+  const snapshot = await userDocRef.get();
+
+  if (snapshot.exists) {
+    await userDocRef.update({
+      ...profile,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+  } else {
+    await userDocRef.set({
+      ...profile,
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+  }
+}
 
 // Single login endpoint for both Super Admin and College Admin.
 // There is deliberately no registration endpoint for either role.
@@ -38,6 +58,13 @@ async function login(req, res) {
     
     // Set custom claims on the Firebase Auth user so they persist in ID tokens
     await firebaseAdmin.auth().setCustomUserClaims(admin.id, {
+      role: 'super_admin',
+    });
+
+    await syncUserProfile(admin.id, {
+      uid: admin.id,
+      email: admin.email,
+      displayName: admin.name,
       role: 'super_admin',
     });
     
@@ -81,6 +108,14 @@ async function login(req, res) {
 
   // Set custom claims on the Firebase Auth user so they persist in ID tokens
   await firebaseAdmin.auth().setCustomUserClaims(college.id, {
+    role: 'college_admin',
+    collegeId: college.id,
+  });
+
+  await syncUserProfile(college.id, {
+    uid: college.id,
+    email: college.email,
+    displayName: college.name,
     role: 'college_admin',
     collegeId: college.id,
   });

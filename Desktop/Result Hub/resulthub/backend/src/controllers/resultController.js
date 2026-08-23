@@ -4,6 +4,7 @@ const { collegeId } = require('../middleware/auth');
 const { publishSchema } = require('../validation/schemas');
 const { recalculateCourse } = require('../services/resultService');
 const { listStudents } = require('../services/studentQueryService');
+const { getSubscription, assertCanPublish, recordPublication } = require('../services/subscriptionService');
 const excel = require('../services/excelService');
 
 async function dashboard(req, res) {
@@ -16,11 +17,14 @@ async function dashboard(req, res) {
     db.collection('results').where('college_id', '==', cid).where('published', '==', true).count().get(),
   ]);
   
+  const subscription = await getSubscription(cid);
+
   res.json({
     students: studentsSnapshot.data().count || 0,
     courses: coursesSnapshot.data().count || 0,
     sections: sectionsSnapshot.data().count || 0,
     published_results: resultsSnapshot.data().count || 0,
+    subscription,
   });
 }
 
@@ -35,28 +39,59 @@ async function recalculate(req, res) {
 async function publish(req, res) {
   const cid = collegeId(req);
   const payload = publishSchema.parse(req.body);
-  
+
   let query = db.collection('results')
     .where('college_id', '==', cid)
     .where('course_id', '==', payload.course_id);
-  
+
   if (payload.section_id) {
     query = query.where('section_id', '==', payload.section_id);
   }
-  
+
+  if (payload.published) {
+    // Only a genuine new publication consumes quota. Re-publishing an
+    // already-published result is a harmless no-op and stays allowed.
+    let unpublishedQuery = db.collection('results')
+      .where('college_id', '==', cid)
+      .where('course_id', '==', payload.course_id)
+      .where('published', '==', false);
+    if (payload.section_id) {
+      unpublishedQuery = unpublishedQuery.where('section_id', '==', payload.section_id);
+    }
+    const unpublishedSnapshot = await unpublishedQuery.limit(1).get();
+    if (!unpublishedSnapshot.empty) {
+      await assertCanPublish(cid);
+    }
+  }
+
   const snapshot = await query.get();
   const batch = db.batch();
-  
+
   const updateData = {
     published: payload.published,
     published_at: payload.published ? Timestamp.now() : null,
   };
-  
+
+  // Count distinct (course, section) groups that are genuinely new to this
+  // publish, so the lifetime counter matches the group-based unit definition.
+  const newGroups = new Set();
   snapshot.forEach(doc => {
+    const data = doc.data();
+    if (payload.published && !data.published && data.exam_id == null) {
+      newGroups.add(`${data.course_id}|${data.section_id || ''}`);
+    }
     batch.update(doc.ref, updateData);
   });
-  
+
   await batch.commit();
+
+  // A genuine new publication consumes one lifetime slot per group for the
+  // college. Record it only after the write succeeded so a failed publish never
+  // burns quota. The counter is never decremented by clearing data.
+  if (newGroups.size > 0) {
+    await recordPublication(cid, newGroups.size);
+  }
+
   res.json({ ok: true, published: payload.published });
 }
 
@@ -86,6 +121,8 @@ async function exportExcel(req, res) {
     sectionId: req.query.section_id || null,
     status: req.query.status || null,
     search: (req.query.search || '').trim() || null,
+    sortBy: req.query.sort_by || null,
+    sortOrder: req.query.sort_order || 'desc',
   });
   const buffer = excel.buildResultsExport(course.subjects, students);
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -107,6 +144,8 @@ async function exportData(req, res) {
     sectionId: req.query.section_id || null,
     status: req.query.status || null,
     search: (req.query.search || '').trim() || null,
+    sortBy: req.query.sort_by || null,
+    sortOrder: req.query.sort_order || 'desc',
   });
   res.json({ college, course, students });
 }

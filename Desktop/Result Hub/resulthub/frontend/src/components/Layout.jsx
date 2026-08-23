@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useTheme } from '../context/ThemeContext.jsx';
+import { HelpCenter } from './HelpCenter.jsx';
 
 const SUPER_ADMIN_NAV = [
   { to: '/admin', label: 'Dashboard' },
@@ -13,7 +14,7 @@ const COLLEGE_NAV = [
   { to: '/college/courses', label: 'Courses' },
   { to: '/college/sections', label: 'Sections' },
   { to: '/college/students', label: 'Students' },
-  { to: '/college/upload', label: 'Upload' },
+  { to: '/college/upload', label: 'Upload Marks' },
   { to: '/college/results', label: 'Results' },
   { to: '/college/settings', label: 'Settings' },
 ];
@@ -83,6 +84,7 @@ export default function Layout({ children, title, subtitle, actions }) {
           </div>
           <div className="flex items-center gap-2">
             {actions}
+            <HelpCenter />
             <button className="btn-ghost" onClick={toggleTheme} aria-label="Toggle colour mode">
               {theme === 'dark' ? '☀' : '☾'}
             </button>

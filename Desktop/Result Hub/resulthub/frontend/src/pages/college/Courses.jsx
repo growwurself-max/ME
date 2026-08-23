@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Layout from '../../components/Layout.jsx';
 import { api } from '../../lib/api';
 import { useToast } from '../../context/ToastContext.jsx';
+import { notifyDataChanged } from '../../lib/realtime';
 import { ConfirmDialog, EmptyState, Field, Loading, Modal, Spinner, Toggle } from '../../components/ui.jsx';
 
 const EMPTY = {
@@ -10,7 +11,7 @@ const EMPTY = {
   enable_ranking: true,
   enable_pass_fail: true,
   enable_grade: false,
-  subjects: [{ name: '', max_marks: 100, passing_marks: 35 }],
+  subjects: [{ name: '', max_marks: 100, passing_marks: '' }],
 };
 
 export default function Courses() {
@@ -35,7 +36,8 @@ export default function Courses() {
       enable_pass_fail: course.enable_pass_fail,
       enable_grade: course.enable_grade,
       subjects: course.subjects.map((s) => ({
-        id: s.id, name: s.name, max_marks: Number(s.max_marks), passing_marks: Number(s.passing_marks),
+        id: s.id, name: s.name, max_marks: Number(s.max_marks),
+        passing_marks: s.passing_marks == null || s.passing_marks === '' ? '' : Number(s.passing_marks),
       })),
     });
     setEditor({ mode: 'edit', course });
@@ -56,6 +58,7 @@ export default function Courses() {
       else await api.put(`/api/college/courses/${editor.course.id}`, payload);
       toast(editor.mode === 'create' ? 'Course created' : 'Course updated — results recalculated');
       setEditor(null);
+      notifyDataChanged({ type: 'college-data' });
       load();
     } catch (error) {
       toast(error.message, 'error');
@@ -70,6 +73,7 @@ export default function Courses() {
       await api.del(`/api/college/courses/${confirm.id}`);
       toast('Course deleted');
       setConfirm(null);
+      notifyDataChanged({ type: 'college-data' });
       load();
     } catch (error) { toast(error.message, 'error'); } finally { setBusy(false); }
   };
@@ -135,7 +139,7 @@ export default function Courses() {
                     <tr key={s.id}>
                       <td className="td px-0 font-medium">{s.name}</td>
                       <td className="td">{Number(s.max_marks)}</td>
-                      <td className="td">{Number(s.passing_marks)}</td>
+                      <td className="td">{s.passing_marks == null || s.passing_marks === '' ? '—' : Number(s.passing_marks)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -167,7 +171,7 @@ export default function Courses() {
                     onChange={(e) => setSubject(index, { name: e.target.value })} />
                   <input className="input" required type="number" min="1" placeholder="Max"
                     value={subject.max_marks} onChange={(e) => setSubject(index, { max_marks: e.target.value })} />
-                  <input className="input" required type="number" min="0" placeholder="Passing"
+                  <input className="input" type="number" min="0" placeholder="Optional"
                     value={subject.passing_marks} onChange={(e) => setSubject(index, { passing_marks: e.target.value })} />
                   <button type="button" className="btn-ghost text-rose-600"
                     onClick={() => setForm({ ...form, subjects: form.subjects.filter((_, i) => i !== index) })}
@@ -176,7 +180,7 @@ export default function Courses() {
               ))}
             </div>
             <button type="button" className="btn-secondary mt-2"
-              onClick={() => setForm({ ...form, subjects: [...form.subjects, { name: '', max_marks: 100, passing_marks: 35 }] })}>
+              onClick={() => setForm({ ...form, subjects: [...form.subjects, { name: '', max_marks: 100, passing_marks: '' }] })}>
               Add subject
             </button>
           </div>

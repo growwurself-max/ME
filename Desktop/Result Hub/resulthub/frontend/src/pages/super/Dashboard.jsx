@@ -25,7 +25,7 @@ export default function SuperDashboard() {
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
           <StatCard label="Total Colleges" value={stats.total_colleges} />
           <StatCard label="Active Colleges" value={stats.active_colleges} tone="brand" />
-          <StatCard label="Disabled Colleges" value={stats.disabled_colleges} tone="rose" />
+          <StatCard label="Disabled Colleges" value={stats.disabled_colleges} tone="slate" />
           <StatCard label="Total Students" value={stats.total_students} tone="slate" />
           <StatCard label="Published Results" value={stats.published_results} tone="amber" />
         </div>

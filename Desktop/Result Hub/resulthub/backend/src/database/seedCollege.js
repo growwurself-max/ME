@@ -56,6 +56,8 @@ async function main() {
       password_hash,
       is_active: true,
       subscription_status: 'active',
+      plan: 'free',
+      plan_limit: 10,
       created_at: Timestamp.now(),
       updated_at: Timestamp.now(),
     });

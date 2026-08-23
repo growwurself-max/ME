@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Layout from '../../components/Layout.jsx';
 import { api } from '../../lib/api';
 import { useToast } from '../../context/ToastContext.jsx';
+import { notifyDataChanged } from '../../lib/realtime';
 import { ConfirmDialog, EmptyState, Field, Loading, Modal, Spinner } from '../../components/ui.jsx';
 
 export default function Sections() {
@@ -30,6 +31,7 @@ export default function Sections() {
       else await api.put(`/api/college/sections/${editor.section.id}`, form);
       toast('Section saved');
       setEditor(null);
+      notifyDataChanged({ type: 'college-data' });
       load();
     } catch (error) { toast(error.message, 'error'); } finally { setBusy(false); }
   };
@@ -40,7 +42,22 @@ export default function Sections() {
       await api.del(`/api/college/sections/${confirm.id}`);
       toast('Section deleted');
       setConfirm(null);
+      notifyDataChanged({ type: 'college-data' });
       load();
+    } catch (error) { toast(error.message, 'error'); } finally { setBusy(false); }
+  };
+
+  const regenerateCode = async (section) => {
+    setBusy(true);
+    try {
+      const result = await api.post(`/api/college/sections/${section.id}/faculty-code`);
+      setCourses((prev) => prev.map((course) =>
+        course.sections?.some((s) => s.id === section.id)
+          ? { ...course, sections: course.sections.map((s) => s.id === section.id ? { ...s, faculty_code: result.faculty_code } : s) }
+          : course
+      ));
+      notifyDataChanged({ type: 'college-data' });
+      toast(`Faculty upload code regenerated: ${result.faculty_code}`);
     } catch (error) { toast(error.message, 'error'); } finally { setBusy(false); }
   };
 
@@ -73,9 +90,16 @@ export default function Sections() {
               ) : (
                 <ul className="row-divider mt-3">
                   {course.sections.map((section) => (
-                    <li key={section.id} className="flex items-center justify-between py-2">
-                      <span className="font-medium">{section.name}</span>
-                      <span className="flex gap-1">
+                    <li key={section.id} className="flex items-center justify-between gap-2 py-2">
+                      <div>
+                        <span className="font-medium">{section.name}</span>
+                        <span className="block text-xs text-slate-500 dark:text-slate-400">
+                          Faculty upload code:{' '}
+                          <span className="font-mono font-semibold tracking-widest">{section.faculty_code || '—'}</span>
+                        </span>
+                      </div>
+                      <span className="flex shrink-0 items-center gap-1">
+                        <button className="btn-ghost" disabled={busy} onClick={() => regenerateCode(section)}>Regenerate code</button>
                         <button className="btn-ghost" onClick={() => {
                           setForm({ course_id: course.id, name: section.name });
                           setEditor({ mode: 'edit', section });

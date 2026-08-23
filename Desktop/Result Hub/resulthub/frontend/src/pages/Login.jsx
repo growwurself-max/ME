@@ -3,7 +3,7 @@ import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 import { useTheme } from '../context/ThemeContext.jsx';
-import { Field, Spinner } from '../components/ui.jsx';
+import { Field, PasswordInput, Spinner } from '../components/ui.jsx';
 
 export default function Login() {
   const { user, login, loading } = useAuth();
@@ -12,6 +12,7 @@ export default function Login() {
   const navigate = useNavigate();
   const [form, setForm] = useState({ username: '', password: '' });
   const [busy, setBusy] = useState(false);
+  const sessionExpired = new URLSearchParams(window.location.search).get('reason') === 'session-expired';
 
   if (!loading && user) {
     return <Navigate to={user.role === 'super_admin' ? '/admin' : '/college'} replace />;
@@ -60,6 +61,11 @@ export default function Login() {
               <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                 Super Admin and College Admin use this form.
               </p>
+              {sessionExpired && (
+                <p className="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-200">
+                  Your session has expired. Please sign in again to continue.
+                </p>
+              )}
             </div>
             <button type="button" className="btn-ghost" onClick={toggleTheme} aria-label="Toggle colour mode">
               {theme === 'dark' ? '☀' : '☾'}
@@ -77,9 +83,7 @@ export default function Login() {
               />
             </Field>
             <Field label="Password">
-              <input
-                className="input"
-                type="password"
+              <PasswordInput
                 autoComplete="current-password"
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}

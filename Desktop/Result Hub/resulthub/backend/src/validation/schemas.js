@@ -24,7 +24,10 @@ const collegeUpdateSchema = collegeSchema.partial().omit({ password: true });
 const subjectSchema = z.object({
   name: nonEmpty(120),
   max_marks: z.coerce.number().positive().max(1000),
-  passing_marks: z.coerce.number().min(0).max(1000),
+  passing_marks: z.preprocess(
+    (v) => (v === '' || v === null || v === undefined ? null : v),
+    z.coerce.number().min(0).max(1000).nullable()
+  ),
   position: z.coerce.number().int().min(0).default(0),
 });
 
@@ -45,7 +48,6 @@ const sectionSchema = z.object({
 const studentSchema = z.object({
   course_id: firestoreId,
   section_id: firestoreId,
-  roll_number: nonEmpty(60),
   hall_ticket_number: nonEmpty(60),
   name: nonEmpty(160),
   marks: z.record(firestoreId, z.coerce.number().min(0)),
@@ -63,9 +65,17 @@ const publishSchema = z.object({
 
 const studentLookupSchema = z.object({
   identifier: nonEmpty(60),
+  name: z.string().trim().max(160).optional().or(z.literal('')),
+  exam_name: z.string().trim().max(160).optional().or(z.literal('')),
+  exam_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD').optional().or(z.literal('')),
 });
 
 const passwordSchema = z.object({ password: z.string().min(6).max(200) });
+
+const subscriptionSchema = z.object({
+  plan: z.enum(['free', 'basic', 'premium']).optional(),
+  limit: z.coerce.number().int().min(1).max(10000).optional(),
+});
 
 const examSchema = z.object({
   name: nonEmpty(120),
@@ -73,6 +83,7 @@ const examSchema = z.object({
   exam_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD'),
   course_id: firestoreId,
   section_id: firestoreId,
+  enable_pass_fail: z.boolean().default(false),
 });
 
 const examUpdateSchema = examSchema.partial();
@@ -80,6 +91,29 @@ const examUpdateSchema = examSchema.partial();
 const examPublishSchema = z.object({
   exam_id: firestoreId,
   published: z.boolean(),
+});
+
+const facultyVerifySchema = z.object({
+  link: nonEmpty(600),
+  code: z.string().trim().regex(/^\d{4}$/, 'Faculty code must be a 4-digit number'),
+});
+
+const facultyPreviewSchema = z.object({
+  link: nonEmpty(600),
+  code: z.string().trim().regex(/^\d{4}$/, 'Faculty code must be a 4-digit number'),
+  data: z.string().optional().or(z.literal('')),
+});
+
+const facultySubmitSchema = z.object({
+  link: nonEmpty(600),
+  code: z.string().trim().regex(/^\d{4}$/, 'Faculty code must be a 4-digit number'),
+  marks: z.array(
+    z.object({
+      hall_ticket_number: nonEmpty(60),
+      name: z.string().trim().max(160).optional().or(z.literal('')),
+      marks: z.coerce.number().min(0).max(1000),
+    })
+  ).min(1).max(1000),
 });
 
 module.exports = {
@@ -93,7 +127,11 @@ module.exports = {
   publishSchema,
   studentLookupSchema,
   passwordSchema,
+  subscriptionSchema,
   examSchema,
   examUpdateSchema,
   examPublishSchema,
+  facultyVerifySchema,
+  facultyPreviewSchema,
+  facultySubmitSchema,
 };

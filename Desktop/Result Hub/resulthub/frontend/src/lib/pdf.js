@@ -15,12 +15,12 @@ export function exportResultsPdf({ college, course, students }) {
     styles: { fontSize: 8, cellPadding: 4 },
     headStyles: { fillColor: [35, 102, 86] },
     head: [[
-      'Roll No', 'Hall Ticket', 'Name', 'Section',
+      'Hall Ticket', 'Name', 'Section',
       ...subjects.map((s) => s.name),
       'Total', '%', 'Status', 'Sec Rank', 'Course Rank',
     ]],
     body: students.map((s) => [
-      s.roll_number, s.hall_ticket_number, s.name, s.section_name,
+      s.hall_ticket_number, s.name, s.section_name,
       ...subjects.map((sub) => (s.marks[sub.id] ?? '-')),
       s.total_marks ?? '-',
       s.percentage ?? '-',
@@ -35,38 +35,52 @@ export function exportResultsPdf({ college, course, students }) {
 // Single student marksheet used by the public portal.
 export function exportMarksheetPdf(result) {
   const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-  doc.setFontSize(16);
-  doc.text(result.college || 'Result', 40, 48);
-  doc.setFontSize(12);
-  doc.text('Statement of Marks', 40, 68);
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const collegeName = result.college_name || result.college || 'Result';
+
+  // Header band with college branding.
+  doc.setFillColor(31, 84, 74);
+  doc.rect(0, 0, pageWidth, 84, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(18);
+  doc.text(collegeName, pageWidth / 2, 36, { align: 'center' });
+  doc.setFontSize(10);
+  doc.text('Statement of Marks', pageWidth / 2, 56, { align: 'center' });
+  doc.setTextColor(30, 41, 59);
 
   const details = [
     ['Student Name', result.name],
-    ['Roll Number', result.roll_number],
-    ['Hall Ticket Number', result.hall_ticket_number],
+    ...(result.hall_ticket_number ? [['Hall Ticket Number', result.hall_ticket_number]] : []),
     ['Course', result.course],
-    ['Section', result.section],
+    ...(result.section ? [['Section', result.section]] : []),
+    ...(result.exam_name && result.exam_name !== 'Result' ? [['Exam Name', result.exam_name]] : []),
+    ...(result.exam_date ? [['Exam Date', result.exam_date]] : []),
   ];
   autoTable(doc, {
-    startY: 86,
+    startY: 102,
     theme: 'plain',
     styles: { fontSize: 10, cellPadding: 3 },
     body: details,
   });
 
+  const subjectRows = (result.subjects || []).map((s) => [
+    s.name, s.marks ?? '-', s.max_marks, s.passing_marks ?? '—',
+    ...(result.status ? [s.status ?? '-'] : []),
+  ]);
   autoTable(doc, {
     startY: doc.lastAutoTable.finalY + 16,
     styles: { fontSize: 10, cellPadding: 5 },
-    headStyles: { fillColor: [35, 102, 86] },
-    head: [['Subject', 'Marks', 'Maximum', 'Passing', 'Result']],
-    body: result.subjects.map((s) => [
-      s.name, s.marks ?? '-', s.max_marks, s.passing_marks, s.status ?? '-',
-    ]),
+    headStyles: { fillColor: [31, 84, 74] },
+    head: [[
+      'Subject', 'Marks', 'Maximum', 'Passing',
+      ...(result.status ? ['Result'] : []),
+    ]],
+    body: subjectRows,
   });
 
   const summary = [
     ['Total Marks', `${result.total_marks} / ${result.max_total_marks}`],
-    ...(result.percentage !== null ? [['Percentage', `${result.percentage}%`]] : []),
+    ...(result.percentage !== null && result.percentage !== undefined ? [['Percentage', `${result.percentage}%`]] : []),
     ...(result.status ? [['Result', result.status]] : []),
     ...(result.grade ? [['Grade', result.grade]] : []),
     ...(result.section_rank ? [['Section Rank', String(result.section_rank)]] : []),
@@ -79,5 +93,5 @@ export function exportMarksheetPdf(result) {
     body: summary,
   });
 
-  doc.save(`${result.hall_ticket_number}_marksheet.pdf`);
+  doc.save(`${result.hall_ticket_number || 'result'}_marksheet.pdf`);
 }

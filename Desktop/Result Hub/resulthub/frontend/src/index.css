@@ -29,7 +29,7 @@
     @apply btn border border-slate-300 bg-white text-slate-700 hover:bg-slate-50
            dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800;
   }
-  .btn-danger { @apply btn bg-rose-600 text-white hover:bg-rose-700; }
+  .btn-danger { @apply btn bg-slate-700 text-white hover:bg-slate-800; }
   .btn-ghost { @apply btn text-slate-600 hover:bg-slate-200/60 dark:text-slate-300 dark:hover:bg-slate-800; }
   .badge { @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold; }
   .th { @apply whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400; }

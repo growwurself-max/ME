@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import Layout from '../../components/Layout.jsx';
 import { api } from '../../lib/api';
 import { useToast } from '../../context/ToastContext.jsx';
-import { ConfirmDialog, EmptyState, Field, Loading, Modal, Spinner } from '../../components/ui.jsx';
+import { ConfirmDialog, EmptyState, Field, Loading, Modal, PasswordInput, Spinner } from '../../components/ui.jsx';
 
 const EMPTY_FORM = {
   name: '',
@@ -15,6 +15,10 @@ const EMPTY_FORM = {
   is_active: true,
 };
 
+const PLAN_LIMITS = { free: 10, basic: 30, premium: 50 };
+
+const PLAN_LABELS = { free: 'Free', basic: 'Basic', premium: 'Premium' };
+
 export default function Colleges() {
   const toast = useToast();
   const [colleges, setColleges] = useState(null);
@@ -24,7 +28,14 @@ export default function Colleges() {
   const [passwordFor, setPasswordFor] = useState(null);
   const [newPassword, setNewPassword] = useState('');
   const [confirm, setConfirm] = useState(null);
+  const [confirmClear, setConfirmClear] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [subFor, setSubFor] = useState(null);
+  const [subPlan, setSubPlan] = useState('free');
+  const [subLimit, setSubLimit] = useState(10);
+  const [subUsage, setSubUsage] = useState(null);
+  const [subLoading, setSubLoading] = useState(false);
+  const [subBusy, setSubBusy] = useState(false);
 
   const load = useCallback(() => {
     api
@@ -115,6 +126,57 @@ export default function Colleges() {
     }
   };
 
+  const clearData = async () => {
+    setBusy(true);
+    try {
+      const result = await api.del(`/api/super-admin/colleges/${confirmClear.id}/data`);
+      toast(`Data cleared — ${result.removed} records removed`);
+      setConfirmClear(null);
+    } catch (error) {
+      toast(error.message, 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const openSubscription = (college) => {
+    setSubFor(college);
+    setSubLoading(true);
+    setSubUsage(null);
+    api.get(`/api/super-admin/colleges/${college.id}/subscription`)
+      .then((d) => {
+        setSubPlan(d.plan);
+        setSubLimit(d.limit);
+        setSubUsage(d);
+      })
+      .catch((e) => toast(e.message, 'error'))
+      .finally(() => setSubLoading(false));
+  };
+
+  const changeSubPlan = (plan) => {
+    setSubPlan(plan);
+    setSubLimit(PLAN_LIMITS[plan]);
+  };
+
+  const saveSubscription = async (event) => {
+    event.preventDefault();
+    setSubBusy(true);
+    try {
+      const result = await api.put(`/api/super-admin/colleges/${subFor.id}/subscription`, {
+        plan: subPlan,
+        limit: Number(subLimit),
+      });
+      toast('Subscription updated');
+      setSubUsage(result);
+      setSubFor(null);
+      load();
+    } catch (error) {
+      toast(error.message, 'error');
+    } finally {
+      setSubBusy(false);
+    }
+  };
+
   return (
     <Layout
       title="College management"
@@ -163,22 +225,29 @@ export default function Colleges() {
                       <div className="text-xs text-slate-500 dark:text-slate-400">{college.phone || '—'}</div>
                     </td>
                     <td className="td font-mono text-xs">{college.username}</td>
-                    <td className="td capitalize">{college.subscription_status}</td>
+                    <td className="td">
+                      <span className={`badge ${PLAN_LABELS[college.plan] ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-200' : ''}`}>
+                        {PLAN_LABELS[college.plan] || 'Free'}
+                      </span>
+                      <span className="ml-2 text-xs capitalize text-slate-500 dark:text-slate-400">{college.subscription_status}</span>
+                    </td>
                     <td className="td">
                       <span className={`badge ${college.is_active
                         ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200'
-                        : 'bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-200'}`}>
+                        : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200'}`}>
                         {college.is_active ? 'Active' : 'Disabled'}
                       </span>
                     </td>
                     <td className="td">
                       <div className="flex justify-end gap-1">
+                        <button className="btn-ghost" onClick={() => openSubscription(college)}>Plan</button>
                         <button className="btn-ghost" onClick={() => openEdit(college)}>Edit</button>
                         <button className="btn-ghost" onClick={() => setPasswordFor(college)}>Reset password</button>
                         <button className="btn-ghost" onClick={() => toggleActive(college)}>
                           {college.is_active ? 'Deactivate' : 'Activate'}
                         </button>
-                        <button className="btn-ghost text-rose-600" onClick={() => setConfirm(college)}>Delete</button>
+                        <button className="btn-ghost text-slate-600" onClick={() => setConfirmClear(college)}>Clear data</button>
+                        <button className="btn-ghost text-slate-600" onClick={() => setConfirm(college)}>Delete</button>
                       </div>
                     </td>
                   </tr>
@@ -219,7 +288,7 @@ export default function Colleges() {
             </Field>
             {editor?.mode === 'create' && (
               <Field label="Password" hint="Minimum 6 characters">
-                <input className="input" type="text" required minLength={6} value={form.password}
+                <PasswordInput autoComplete="new-password" required minLength={6} value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })} />
               </Field>
             )}
@@ -254,7 +323,7 @@ export default function Colleges() {
       >
         <form onSubmit={resetPassword} className="space-y-4">
           <Field label="New password" hint="Minimum 6 characters">
-            <input className="input" required minLength={6} value={newPassword}
+            <PasswordInput autoComplete="new-password" required minLength={6} value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)} />
           </Field>
           <div className="flex justify-end gap-2">
@@ -262,6 +331,69 @@ export default function Colleges() {
             <button className="btn-primary" disabled={busy}>{busy && <Spinner />} Reset password</button>
           </div>
         </form>
+      </Modal>
+
+      <Modal
+        open={Boolean(subFor)}
+        title={`Subscription — ${subFor?.name || ''}`}
+        description="Pick a plan and set the maximum published results. You can change these values anytime."
+        onClose={() => setSubFor(null)}
+      >
+        {subLoading ? (
+          <Loading />
+        ) : (
+          <form onSubmit={saveSubscription} className="space-y-5">
+            <div>
+              <p className="label">Plan</p>
+              <div className="grid gap-2 sm:grid-cols-3">
+                {Object.entries(PLAN_LIMITS).map(([key, defaultLimit]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => changeSubPlan(key)}
+                    aria-pressed={subPlan === key}
+                    className={`rounded-xl border px-3 py-2 text-sm font-semibold transition ${
+                      subPlan === key
+                        ? 'border-brand-600 bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-200'
+                        : 'border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    {PLAN_LABELS[key]}
+                    <span className="block text-xs font-normal opacity-70">
+                      Up to {defaultLimit} published
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <Field
+              label="Maximum published results"
+              hint="Override the plan default for this college. The system always uses this value."
+            >
+              <input className="input" type="number" min="1" required value={subLimit}
+                onChange={(e) => setSubLimit(e.target.value)} />
+            </Field>
+
+            {subUsage && (
+              <div className="rounded-xl bg-slate-50 p-4 dark:bg-slate-800/60">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-semibold">Published results</span>
+                  <span className="font-bold">{subUsage.used} / {subLimit}</span>
+                </div>
+                <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+                  <div className="h-full rounded-full bg-brand-600 transition-all"
+                    style={{ width: `${Math.min(100, (subUsage.used / Math.max(1, Number(subLimit))) * 100)}%` }} />
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2">
+              <button type="button" className="btn-secondary" onClick={() => setSubFor(null)}>Cancel</button>
+              <button className="btn-primary" disabled={subBusy}>{subBusy && <Spinner />} Save subscription</button>
+            </div>
+          </form>
+        )}
       </Modal>
 
       <ConfirmDialog
@@ -272,6 +404,16 @@ export default function Colleges() {
         busy={busy}
         onCancel={() => setConfirm(null)}
         onConfirm={remove}
+      />
+
+      <ConfirmDialog
+        open={Boolean(confirmClear)}
+        title="Clear this college's data?"
+        message={`All courses, students, marks and results for "${confirmClear?.name}" will be removed, but the college account, credentials and subscription stay. Useful for freeing storage before a fresh start.`}
+        confirmLabel="Clear data"
+        busy={busy}
+        onCancel={() => setConfirmClear(null)}
+        onConfirm={clearData}
       />
     </Layout>
   );

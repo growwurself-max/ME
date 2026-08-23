@@ -1,20 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { api, clearToken, getToken, setToken } from '../lib/api';
-import {
-  auth,
-  ensureUserProfile,
-  firebaseSignOut,
-  onAuthStateChanged,
-  signInWithFirebaseTokenAndGetIdToken,
-} from '../lib/firebase.ts';
+import { auth, firebaseSignOut, onIdTokenChanged, signInWithFirebaseTokenAndGetIdToken } from '../lib/firebase.ts';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(Boolean(getToken()));
-  const [databaseSyncing, setDatabaseSyncing] = useState(false);
-  const [databaseSyncError, setDatabaseSyncError] = useState('');
 
   useEffect(() => {
     if (!getToken()) {
@@ -22,39 +14,44 @@ export function AuthProvider({ children }) {
       return;
     }
 
-    api
-      .get('/api/auth/me')
-      .then((data) => setUser(data.user))
-      .catch(async () => {
-        clearToken();
-        try {
-          await firebaseSignOut(auth);
-        } catch {
-          // Ignore sign-out failures during cleanup.
-        }
-      })
-      .finally(() => setLoading(false));
-  }, []);
+    let cancelled = false;
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    // Keep the stored Firebase ID token fresh. Firebase refreshes the ID token
+    // automatically while a session is active, and onIdTokenChanged fires on
+    // every refresh — so protected requests never send an expired token.
+    const unsub = onIdTokenChanged(auth, async (firebaseUser) => {
+      if (cancelled) return;
       if (!firebaseUser) {
-        setDatabaseSyncError('');
-        setDatabaseSyncing(false);
+        clearToken();
+        setUser(null);
+        setLoading(false);
         return;
       }
-
-      setDatabaseSyncing(true);
-      const result = await ensureUserProfile(firebaseUser);
-      if (!result.ok) {
-        setDatabaseSyncError(result.message);
-      } else {
-        setDatabaseSyncError('');
+      try {
+        const freshIdToken = await firebaseUser.getIdToken(true);
+        setToken(freshIdToken);
+        if (cancelled) return;
+        const data = await api.get('/api/auth/me');
+        if (cancelled) return;
+        setUser(data.user);
+      } catch {
+        if (!cancelled) {
+          clearToken();
+          try {
+            await firebaseSignOut(auth);
+          } catch {
+            // Ignore sign-out failures during cleanup.
+          }
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      setDatabaseSyncing(false);
     });
 
-    return unsubscribe;
+    return () => {
+      cancelled = true;
+      unsub();
+    };
   }, []);
 
   const login = useCallback(async (username, password) => {
@@ -66,7 +63,7 @@ export function AuthProvider({ children }) {
         setToken(firebaseIdToken);
       } catch (error) {
         console.warn('Firebase sign-in failed:', error);
-        throw new Error('Firebase sign-in failed. Check local Firebase Auth emulator/project configuration.');
+        throw new Error('Firebase sign-in failed. Check Firebase project configuration.');
       }
     } else if (data.token) {
       setToken(data.token);
@@ -79,8 +76,6 @@ export function AuthProvider({ children }) {
   const logout = useCallback(async () => {
     clearToken();
     setUser(null);
-    setDatabaseSyncError('');
-    setDatabaseSyncing(false);
 
     try {
       await firebaseSignOut(auth);
@@ -102,8 +97,6 @@ export function AuthProvider({ children }) {
         login,
         logout,
         refresh,
-        databaseSyncing,
-        databaseSyncError,
       }}
     >
       {children}

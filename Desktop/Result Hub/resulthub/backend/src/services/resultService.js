@@ -22,18 +22,21 @@ async function recalculateCourse(collegeId, courseId) {
     .get();
 
   const studentIds = studentsSnapshot.docs.map(doc => doc.id);
-  const marksSnapshot = await db.collection('student_marks')
-    .where('student_id', 'in', studentIds.length > 0 ? studentIds : [''])
-    .get();
-  
+
   const marksByStudentId = new Map();
-  marksSnapshot.docs.forEach(doc => {
-    const data = doc.data();
-    if (!marksByStudentId.has(data.student_id)) {
-      marksByStudentId.set(data.student_id, []);
-    }
-    marksByStudentId.get(data.student_id).push(data);
-  });
+  for (let i = 0; i < studentIds.length; i += 10) {
+    const chunkIds = studentIds.slice(i, i + 10);
+    const marksSnapshot = await db.collection('student_marks')
+      .where('student_id', 'in', chunkIds)
+      .get();
+    marksSnapshot.docs.forEach(doc => {
+      const data = doc.data();
+      if (!marksByStudentId.has(data.student_id)) {
+        marksByStudentId.set(data.student_id, []);
+      }
+      marksByStudentId.get(data.student_id).push(data);
+    });
+  }
 
   const computed = studentsSnapshot.docs.map(studentDoc => {
     const student = studentDoc.data();
@@ -47,7 +50,10 @@ async function recalculateCourse(collegeId, courseId) {
       const allSubjectsPresent = marks.length === subjects.length;
       const passedEach = marks.every((m) => {
         const subject = subjectById.get(m.subject_id);
-        return subject ? Number(m.marks || 0) >= Number(subject.passing_marks) : false;
+        if (!subject) return false;
+        const passing = subject.passing_marks;
+        if (passing === null || passing === undefined || passing === '') return true;
+        return Number(m.marks || 0) >= Number(passing);
       });
       status = allSubjectsPresent && passedEach ? 'PASS' : 'FAIL';
     }
@@ -77,16 +83,19 @@ async function recalculateCourse(collegeId, courseId) {
 
   if (computed.length === 0) return { updated: 0 };
 
-  const existingSnapshot = await db.collection('results')
-    .where('student_id', 'in', computed.map((r) => r.student_id).length > 0 ? computed.map((r) => r.student_id) : [''])
-    .where('exam_id', '==', null)
-    .get();
-  
+  const computedStudentIds = computed.map((r) => r.student_id);
   const publishedById = new Map();
-  existingSnapshot.docs.forEach(doc => {
-    const data = doc.data();
-    publishedById.set(data.student_id, { published: data.published, published_at: data.published_at });
-  });
+  for (let i = 0; i < computedStudentIds.length; i += 10) {
+    const chunkIds = computedStudentIds.slice(i, i + 10);
+    const existingSnapshot = await db.collection('results')
+      .where('student_id', 'in', chunkIds)
+      .where('exam_id', '==', null)
+      .get();
+    existingSnapshot.docs.forEach(doc => {
+      const data = doc.data();
+      publishedById.set(data.student_id, { published: data.published, published_at: data.published_at });
+    });
+  }
 
   const batch = db.batch();
   computed.forEach((row) => {
@@ -129,6 +138,11 @@ async function recalculateExam(collegeId, examId) {
 
   const course = { id: courseDoc.id, ...courseDoc.data() };
 
+  // Per-exam pass/fail toggle. When unset (legacy exams), fall back to the
+  // course-level rule so existing workflows keep working.
+  const enablePassFail =
+    exam.enable_pass_fail !== undefined ? Boolean(exam.enable_pass_fail) : Boolean(course.enable_pass_fail);
+
   const subjectsSnapshot = await db.collection('subjects')
     .where('course_id', '==', exam.course_id)
     .get();
@@ -144,18 +158,21 @@ async function recalculateExam(collegeId, examId) {
     .get();
 
   const studentIds = studentsSnapshot.docs.map(doc => doc.id);
-  const marksSnapshot = await db.collection('student_marks')
-    .where('student_id', 'in', studentIds.length > 0 ? studentIds : [''])
-    .get();
-  
+
   const marksByStudentId = new Map();
-  marksSnapshot.docs.forEach(doc => {
-    const data = doc.data();
-    if (!marksByStudentId.has(data.student_id)) {
-      marksByStudentId.set(data.student_id, []);
-    }
-    marksByStudentId.get(data.student_id).push(data);
-  });
+  for (let i = 0; i < studentIds.length; i += 10) {
+    const chunkIds = studentIds.slice(i, i + 10);
+    const marksSnapshot = await db.collection('student_marks')
+      .where('student_id', 'in', chunkIds)
+      .get();
+    marksSnapshot.docs.forEach(doc => {
+      const data = doc.data();
+      if (!marksByStudentId.has(data.student_id)) {
+        marksByStudentId.set(data.student_id, []);
+      }
+      marksByStudentId.get(data.student_id).push(data);
+    });
+  }
 
   const computed = studentsSnapshot.docs.map(studentDoc => {
     const student = studentDoc.data();
@@ -165,11 +182,14 @@ async function recalculateExam(collegeId, examId) {
       course.enable_percentage && maxTotal > 0 ? Number(((total / maxTotal) * 100).toFixed(2)) : null;
 
     let status = null;
-    if (course.enable_pass_fail) {
+    if (enablePassFail) {
       const allSubjectsPresent = marks.length === subjects.length;
       const passedEach = marks.every((m) => {
         const subject = subjectById.get(m.subject_id);
-        return subject ? Number(m.marks || 0) >= Number(subject.passing_marks) : false;
+        if (!subject) return false;
+        const passing = subject.passing_marks;
+        if (passing === null || passing === undefined || passing === '') return true;
+        return Number(m.marks || 0) >= Number(passing);
       });
       status = allSubjectsPresent && passedEach ? 'PASS' : 'FAIL';
     }

@@ -4,6 +4,7 @@ const { collegeId } = require('../middleware/auth');
 const { studentSchema, studentUpdateSchema } = require('../validation/schemas');
 const { recalculateCourse, recalculateExam } = require('../services/resultService');
 const { listStudents } = require('../services/studentQueryService');
+const { purgeStudent } = require('../services/storageService');
 
 async function list(req, res) {
   const students = await listStudents(collegeId(req), {
@@ -13,7 +14,7 @@ async function list(req, res) {
     status: req.query.status || null,
     search: (req.query.search || '').trim() || null,
     sortBy: req.query.sort_by || null,
-    sortOrder: req.query.sort_order || 'asc',
+    sortOrder: req.query.sort_order || 'desc',
   });
   res.json({ students });
 }
@@ -59,7 +60,6 @@ async function create(req, res) {
     college_id: cid,
     course_id: payload.course_id,
     section_id: payload.section_id,
-    roll_number: payload.roll_number,
     hall_ticket_number: payload.hall_ticket_number,
     name: payload.name,
     created_at: Timestamp.now(),
@@ -98,7 +98,6 @@ async function update(req, res) {
     updated_at: Timestamp.now(),
   };
   
-  if (payload.roll_number !== undefined) updateData.roll_number = payload.roll_number;
   if (payload.hall_ticket_number !== undefined) updateData.hall_ticket_number = payload.hall_ticket_number;
   if (payload.name !== undefined) updateData.name = payload.name;
   
@@ -126,8 +125,9 @@ async function remove(req, res) {
     throw notFound('Student not found');
   }
   
-  await studentRef.delete();
-  await recalculateCourse(cid, studentDoc.data().course_id);
+  const courseId = studentDoc.data().course_id;
+  await purgeStudent(req.params.id);
+  await recalculateCourse(cid, courseId);
   res.json({ ok: true });
 }
 

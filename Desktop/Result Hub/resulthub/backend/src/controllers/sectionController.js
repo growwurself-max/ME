@@ -2,6 +2,14 @@ const { db, Timestamp } = require('../config/firebase');
 const { notFound } = require('../utils/errors');
 const { collegeId } = require('../middleware/auth');
 const { sectionSchema } = require('../validation/schemas');
+const crypto = require('crypto');
+const { purgeSection } = require('../services/storageService');
+
+// 4-digit numeric code used by faculty to unlock subject-wise uploads for a
+// section. One code covers every subject of the section.
+function randomFacultyCode() {
+  return crypto.randomInt(0, 10000).toString().padStart(4, '0');
+}
 
 async function assertCourse(cid, courseId) {
   const courseDoc = await db.collection('courses').doc(courseId).get();
@@ -38,6 +46,8 @@ async function create(req, res) {
     college_id: cid,
     course_id: payload.course_id,
     name: payload.name,
+    faculty_code: randomFacultyCode(),
+    faculty_code_updated_at: Timestamp.now(),
     created_at: Timestamp.now(),
   });
   
@@ -77,8 +87,28 @@ async function remove(req, res) {
     throw notFound('Section not found');
   }
   
-  await sectionRef.delete();
-  res.json({ ok: true });
+  const removed = await purgeSection(cid, req.params.id);
+  res.json({ ok: true, removed });
 }
 
-module.exports = { list, create, update, remove };
+// Generate a fresh faculty upload code for a section. Existing shared links
+// keep working (the code is the gate), but the old code stops being valid.
+async function regenerateFacultyCode(req, res) {
+  const cid = collegeId(req);
+  const sectionRef = db.collection('sections').doc(req.params.id);
+  const sectionDoc = await sectionRef.get();
+
+  if (!sectionDoc.exists || sectionDoc.data().college_id !== cid) {
+    throw notFound('Section not found');
+  }
+
+  const code = randomFacultyCode();
+  await sectionRef.update({
+    faculty_code: code,
+    faculty_code_updated_at: Timestamp.now(),
+  });
+
+  res.json({ faculty_code: code });
+}
+
+module.exports = { list, create, update, remove, regenerateFacultyCode, randomFacultyCode };

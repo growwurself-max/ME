@@ -2,6 +2,9 @@ const { db, Timestamp } = require('../config/firebase');
 const { notFound, badRequest } = require('../utils/errors');
 const { collegeId } = require('../middleware/auth');
 const { examSchema, examUpdateSchema, examPublishSchema } = require('../validation/schemas');
+const { recalculateExam } = require('../services/resultService');
+const { assertCanPublish, recordPublication } = require('../services/subscriptionService');
+const { purgeExam } = require('../services/storageService');
 
 async function list(req, res) {
   const cid = collegeId(req);
@@ -34,6 +37,7 @@ async function create(req, res) {
     exam_date: payload.exam_date,
     course_id: payload.course_id,
     section_id: payload.section_id,
+    enable_pass_fail: payload.enable_pass_fail,
     published: false,
     published_at: null,
     created_at: Timestamp.now(),
@@ -60,8 +64,20 @@ async function update(req, res) {
   if (payload.exam_date !== undefined) updateData.exam_date = payload.exam_date;
   if (payload.course_id !== undefined) updateData.course_id = payload.course_id;
   if (payload.section_id !== undefined) updateData.section_id = payload.section_id;
+  if (payload.enable_pass_fail !== undefined) updateData.enable_pass_fail = payload.enable_pass_fail;
 
   await examRef.update(updateData);
+
+  // Recalculate when the pass/fail toggle or sensible calculation inputs change
+  // so stored results stay in sync immediately.
+  if (payload.enable_pass_fail !== undefined) {
+    try {
+      await recalculateExam(cid, req.params.id);
+    } catch (error) {
+      // Recalculation failures should not block the exam update itself.
+    }
+  }
+
   res.json({ ok: true });
 }
 
@@ -78,8 +94,8 @@ async function remove(req, res) {
     throw badRequest('Cannot delete a published exam');
   }
 
-  await examRef.delete();
-  res.json({ ok: true });
+  const removed = await purgeExam(req.params.id);
+  res.json({ ok: true, removed });
 }
 
 async function publish(req, res) {
@@ -93,6 +109,14 @@ async function publish(req, res) {
     throw notFound('Exam not found');
   }
 
+  // Publishing an exam consumes one slot in the college's plan quota; an
+  // already-published exam is a harmless no-op and stays allowed.
+  let consumesQuota = false;
+  if (payload.published && !examDoc.data().published) {
+    await assertCanPublish(cid);
+    consumesQuota = true;
+  }
+
   const updateData = {
     published: payload.published,
     published_at: payload.published ? Timestamp.now() : null,
@@ -100,6 +124,7 @@ async function publish(req, res) {
   };
 
   await examRef.update(updateData);
+  if (consumesQuota) await recordPublication(cid);
   res.json({ ok: true, published: payload.published });
 }
 

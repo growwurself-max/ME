@@ -13,5 +13,8 @@ router.patch('/colleges/:id/activate', asyncHandler(c.activate));
 router.patch('/colleges/:id/deactivate', asyncHandler(c.deactivate));
 router.patch('/colleges/:id/password', asyncHandler(c.resetPassword));
 router.delete('/colleges/:id', asyncHandler(c.deleteCollege));
+router.delete('/colleges/:id/data', asyncHandler(c.resetCollegeData));
+router.get('/colleges/:id/subscription', asyncHandler(c.getSubscription));
+router.put('/colleges/:id/subscription', asyncHandler(c.updateSubscription));
 
 module.exports = router;

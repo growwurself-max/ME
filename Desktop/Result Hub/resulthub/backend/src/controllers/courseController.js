@@ -3,6 +3,7 @@ const { notFound } = require('../utils/errors');
 const { collegeId } = require('../middleware/auth');
 const { courseSchema } = require('../validation/schemas');
 const { recalculateCourse } = require('../services/resultService');
+const { purgeCourse } = require('../services/storageService');
 
 const sortCourse = (course) => ({
   ...course,
@@ -138,8 +139,8 @@ async function remove(req, res) {
     throw notFound('Course not found');
   }
   
-  await courseRef.delete();
-  res.json({ ok: true });
+  const removed = await purgeCourse(cid, req.params.id);
+  res.json({ ok: true, removed });
 }
 
 module.exports = { list, create, update, remove };

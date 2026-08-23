@@ -1,9 +1,45 @@
 const { db } = require('../config/firebase');
 
+// Natural sort that handles both numeric (1, 2, 10) and alphanumeric
+// (JEE250001, JEE250002, JEE250010) hall ticket numbers instead of plain
+// lexicographic order.
+function naturalCompare(a, b) {
+  const ax = String(a ?? '');
+  const bx = String(b ?? '');
+  const re = /(\d+|\D+)/g;
+  const aParts = ax.match(re) || [];
+  const bParts = bx.match(re) || [];
+  const len = Math.max(aParts.length, bParts.length);
+
+  for (let i = 0; i < len; i++) {
+    const aChunk = aParts[i] ?? '';
+    const bChunk = bParts[i] ?? '';
+    const aIsNum = /^\d+$/.test(aChunk);
+    const bIsNum = /^\d+$/.test(bChunk);
+
+    let cmp;
+    if (aIsNum && bIsNum) {
+      const numCmp = parseInt(aChunk, 10) - parseInt(bChunk, 10);
+      cmp = numCmp !== 0 ? numCmp : aChunk.length - bChunk.length;
+    } else if (aIsNum) {
+      cmp = -1; // numeric segment ranks before text segment
+    } else if (bIsNum) {
+      cmp = 1;
+    } else {
+      const al = aChunk.toLowerCase();
+      const bl = bChunk.toLowerCase();
+      cmp = al < bl ? -1 : al > bl ? 1 : 0;
+    }
+    if (cmp !== 0) return cmp;
+  }
+  return aParts.length - bParts.length;
+}
+
 async function listStudents(collegeId, { courseId, sectionId, examId, status, search, sortBy, sortOrder } = {}) {
-  let query = db.collection('students')
-    .where('college_id', '==', collegeId)
-    .orderBy('roll_number');
+  // Single-field filter only: ordering is applied in memory with a natural
+  // sort so this endpoint never depends on a composite index (which would
+  // 500 until the index is deployed to Firestore).
+  let query = db.collection('students').where('college_id', '==', collegeId);
 
   if (courseId) query = query.where('course_id', '==', courseId);
   if (sectionId) query = query.where('section_id', '==', sectionId);
@@ -69,7 +105,6 @@ async function listStudents(collegeId, { courseId, sectionId, examId, status, se
   if (search) {
     const term = search.toLowerCase();
     students = students.filter(s => 
-      s.roll_number.toLowerCase().includes(term) ||
       s.hall_ticket_number.toLowerCase().includes(term) ||
       s.name.toLowerCase().includes(term)
     );
@@ -82,42 +117,31 @@ async function listStudents(collegeId, { courseId, sectionId, examId, status, se
   if (sortBy) {
     const order = sortOrder === 'desc' ? -1 : 1;
     students.sort((a, b) => {
-      let aVal, bVal;
       switch (sortBy) {
-        case 'roll_number':
-          aVal = a.roll_number.toLowerCase();
-          bVal = b.roll_number.toLowerCase();
-          break;
+        case 'hall_ticket_number':
+          return naturalCompare(a.hall_ticket_number, b.hall_ticket_number) * order;
         case 'total_marks':
-          aVal = a.total_marks ?? 0;
-          bVal = b.total_marks ?? 0;
-          break;
+          return ((a.total_marks ?? 0) - (b.total_marks ?? 0)) * order;
         case 'percentage':
-          aVal = a.percentage ?? 0;
-          bVal = b.percentage ?? 0;
-          break;
+          return ((a.percentage ?? 0) - (b.percentage ?? 0)) * order;
         case 'rank':
-          aVal = a.course_rank ?? Infinity;
-          bVal = b.course_rank ?? Infinity;
-          break;
+          return ((a.course_rank ?? Infinity) - (b.course_rank ?? Infinity)) * order;
         case 'name':
-          aVal = a.name.toLowerCase();
-          bVal = b.name.toLowerCase();
-          break;
+          return (a.name.toLowerCase() < b.name.toLowerCase() ? -1 : a.name.toLowerCase() > b.name.toLowerCase() ? 1 : 0) * order;
         default:
           return 0;
       }
-      if (aVal < bVal) return -1 * order;
-      if (aVal > bVal) return 1 * order;
-      return 0;
     });
   } else if (status === 'RANK') {
     students = students
       .filter((s) => s.course_rank !== null)
       .sort((a, b) => a.course_rank - b.course_rank);
+  } else {
+    // Default order: natural sort by hall ticket number.
+    students.sort((a, b) => naturalCompare(a.hall_ticket_number, b.hall_ticket_number));
   }
   
   return students;
 }
 
-module.exports = { listStudents };
+module.exports = { listStudents, naturalCompare };

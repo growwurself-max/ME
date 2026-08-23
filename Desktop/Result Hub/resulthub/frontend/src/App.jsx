@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from './context/AuthContext.jsx';
 import { Loading } from './components/ui.jsx';
 import StudentPortal from './pages/StudentPortal.jsx';
+import FacultyUpload from './pages/FacultyUpload.jsx';
 import Login from './pages/Login.jsx';
 import NotFound from './pages/NotFound.jsx';
 import SuperDashboard from './pages/super/Dashboard.jsx';
@@ -25,22 +26,11 @@ function Protected({ role, children }) {
 }
 
 export default function App() {
-  const { databaseSyncing, databaseSyncError } = useAuth();
-
   return (
     <>
-      {(databaseSyncing || databaseSyncError) && (
-        <div
-          className={`text-center text-sm font-medium ${
-            databaseSyncError ? 'bg-amber-100 text-amber-900' : 'bg-slate-900 text-white'
-          } py-2 px-4`}
-        >
-          {databaseSyncing ? 'Database syncing...' : databaseSyncError}
-        </div>
-      )}
-
       <Routes>
         <Route path="/" element={<StudentPortal />} />
+        <Route path="/faculty-upload" element={<FacultyUpload />} />
         <Route path="/login" element={<Login />} />
 
         <Route path="/admin" element={<Protected role="super_admin"><SuperDashboard /></Protected>} />

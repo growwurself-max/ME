@@ -3,8 +3,8 @@
 ResultHub is a multi-tenant SaaS for **result management and publishing** — not an
 examination or online-test platform. Institutions (junior colleges, degree colleges,
 schools, coaching and training institutes) configure their own courses, upload marks
-from Excel, review and edit them, then publish results students look up with a hall
-ticket or roll number.
+from Excel, review and edit them, then publish results students look up with their
+Hall Ticket Number.
 
 Fully independent stack: **React (Vite) + Tailwind + Express + Firebase Firestore + JWT**.
 Uses Firebase Admin SDK for server-side database operations and Firebase Authentication.
@@ -110,16 +110,23 @@ activate, deactivate, delete.
    passing marks, and toggle percentage, ranking, pass/fail and grade. All rules live
    in the database; no board logic is hardcoded.
 2. **Sections** — any number of sections per course.
-3. **Upload** — pick course + section, download the template generated from that
-   course's configured subjects, fill it, upload; every row is validated (duplicate
-   roll numbers, missing hall ticket or name, invalid or out-of-range marks, unknown
-   section, unknown column, empty rows) and previewed before import.
-4. **Students / Results** — search and filter by course, section, pass, fail or rank.
+3. **Upload Marks** — one workflow with two choices:
+   - **Upload All Subjects** — pick course + section + exam, download the template generated
+     from that course's configured subjects, fill it, then upload or paste rows into the
+     spreadsheet grid; every row is validated (missing or duplicate Hall Ticket Number,
+     missing name, invalid or out-of-range marks, unknown section, unknown column, empty
+     rows) with problem cells highlighted before import.
+   - **Upload Subject-wise** — pick course + section + exam + subject, generate a faculty
+     share link (scoped to that single subject) with the section's 4-digit upload code.
+     Faculty open the link, verify the code, then upload an Excel file (using the pre-filled
+     subject template) or paste rows into the spreadsheet grid; marks are saved as draft until
+     the college reviews and publishes.
+4. **Students / Results** — search and filter by course, section, exam, pass, fail or rank.
    Edit marks, correct details, add or delete students; totals, percentage, pass/fail,
-   section rank and course rank are recalculated on every change. Publish when
-   satisfied, unpublish to correct, then republish. Export Excel or PDF.
+   section rank and course rank are recalculated on every change. Review subject-wise draft
+   marks, publish when satisfied, unpublish to correct, then republish. Export Excel or PDF.
 
-**Students** (`/`) — no login. Search by hall ticket or roll number; only published
+**Students** (`/`) — no login. Search by Hall Ticket Number; only published
 results are returned. Print or download a PDF marksheet.
 
 ## 6. API summary
@@ -139,11 +146,18 @@ GET    /api/college/dashboard
 CRUD   /api/college/courses  /api/college/sections  /api/college/students
 GET    /api/college/upload/template?course_id=
 POST   /api/college/upload/preview   (multipart)
-POST   /api/college/upload/commit
+POST   /api/college/upload/preview-paste
+POST   /api/college/upload/commit    (accepts existing exam_id or creates a new exam)
 POST   /api/college/results/recalculate | /publish
 GET    /api/college/results/export/excel | /export/data
 
 GET    /api/public/results?identifier=      published results only
+
+POST   /api/public/faculty-upload/context   subject-wise upload context
+GET    /api/public/faculty-upload/template  subject template (link + code)
+POST   /api/public/faculty-upload/preview   subject marks preview (excel or paste)
+POST   /api/public/faculty-upload/verify    verify faculty upload code
+POST   /api/public/faculty-upload/submit    save marks for the link's subject
 ```
 
 ## 7. Security

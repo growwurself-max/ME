@@ -1,4 +1,4 @@
-const BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:4000').replace(/\/$/, '');
+const BASE_URL = (import.meta.env.VITE_API_URL || 'https://result-hub-ve8j.onrender.com').replace(/\/$/, '');
 const TOKEN_KEY = 'resulthub.token';
 
 export const getToken = () => localStorage.getItem(TOKEN_KEY);
@@ -13,13 +13,18 @@ function authHeaders() {
 async function handle(response) {
   if (response.status === 401) {
     clearToken();
-    if (!location.pathname.startsWith('/login')) location.href = '/login';
+    if (!location.pathname.startsWith('/login')) {
+      location.href = '/login?reason=session-expired';
+    }
   }
   const isJson = (response.headers.get('content-type') || '').includes('application/json');
   const body = isJson ? await response.json() : null;
   if (!response.ok) {
     const detail = body?.details?.map?.((d) => `${d.path || d.field}: ${d.message}`).join(', ');
-    throw new Error(detail ? `${body.error}: ${detail}` : body?.error || `Request failed (${response.status})`);
+    const error = new Error(detail ? `${body.error}: ${detail}` : body?.error || `Request failed (${response.status})`);
+    error.code = body?.code;
+    error.details = body?.details;
+    throw error;
   }
   return body;
 }

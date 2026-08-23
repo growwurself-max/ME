@@ -1,8 +1,9 @@
 class AppError extends Error {
-  constructor(status, message, details) {
+  constructor(status, message, details, code) {
     super(message);
     this.status = status;
     this.details = details;
+    this.code = code;
   }
 }
 const badRequest = (m, d) => new AppError(400, m, d);
