@@ -41,6 +41,10 @@ export const FINISH_PRESETS: Record<string, Finish> = {
   charcoalGrey: { name: 'Charcoal Grey', color: '#3a3a3e', roughness: 0.7 },
   walnutWood: { name: 'Walnut Wood', color: '#5b3a1e', roughness: 0.6 },
   ivoryLinen: { name: 'Ivory Linen', color: '#e8e2d4', roughness: 0.9 },
+  bouclé: { name: 'Italian Bouclé', color: '#8c6d48', roughness: 0.75 },
+  emeraldVelvet: { name: 'Emerald Velvet', color: '#0a3d27', roughness: 0.65 },
+  topGrainLeather: { name: 'Rich Top-Grain Leather', color: '#6b4226', roughness: 0.45 },
+  sheeshamWood: { name: 'Natural Sheesham Wood', color: '#c9a884', roughness: 0.5 },
 }
 
 const F = FINISH_PRESETS

@@ -119,6 +119,7 @@ export default function SpatialPlinthModal({ item, onClose }: SpatialPlinthModal
           <div className="relative h-[40vh] lg:h-full bg-gradient-to-br from-greige-base to-greige-warm">
             <Canvas
               camera={{ position: [0, 0, 4], fov: 50 }}
+              frameloop="demand"
               gl={{ antialias: true, alpha: true }}
             >
               <Suspense fallback={null}>

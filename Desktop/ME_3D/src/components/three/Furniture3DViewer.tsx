@@ -1,10 +1,12 @@
-import { Suspense, useState } from 'react'
+import { Suspense, useState, useRef, useEffect } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { Html, OrbitControls, Center, Bounds } from '@react-three/drei'
 import { Layers, RotateCcw, Sun } from 'lucide-react'
+import * as THREE from 'three'
 import RoomEnvironment from './RoomEnvironment'
 import { GLBModel, ProceduralFurniture } from './ProceduralFurniture'
 import type { Finish, Product } from '../../data/products'
+import { FINISH_PRESETS } from '../../data/products'
 
 const LIGHT_LABELS = ['Morning', 'Afternoon', 'Evening'] as const
 
@@ -93,6 +95,62 @@ export function LightSimulator({
   )
 }
 
+function MaterialSwatch({
+  finish,
+  index,
+  total,
+  onSelect,
+}: {
+  finish: Finish
+  index: number
+  total: number
+  onSelect: (finish: Finish) => void
+}) {
+  const isSelected = finish === undefined
+  const primary = finish?.color ?? '#8c6d48'
+
+  return (
+    <button
+      onClick={() => onSelect(finish)}
+      className={`glass-pill pointer-events-auto flex items-center gap-2 rounded-full px-4 py-2 text-xs font-medium tracking-wide transition-colors ${
+        isSelected ? 'text-alabaster' : 'text-obsidian hover:text-teak'
+      }`} style={{ background: isSelected ? primary : undefined, color: isSelected ? '#FFFFFF' : '#1F1D1A' }}>
+        {finish?.name ?? 'Default'}
+      </button>
+  )
+}
+
+function DimensionHUD({
+  dimensions,
+  position,
+}: {
+  dimensions: { width: number; height: number; depth: number }
+  position: [number, number, number]
+}) {
+  return (
+    <Html
+      position={position}
+      center
+      distanceFactor={10}
+      style={{
+        pointerEvents: 'none',
+        color: '#B88E52',
+        fontSize: '0.6rem',
+        textTransform: 'uppercase',
+      }}
+    >
+      <div className="flex items-center gap-1 text-xs">
+        <span>L <b>×</b> W <b>×</b> H</span>
+        <span className="font-medium">{dimensions.width} cm</span>
+        <span className="mx-1">×</span>
+        <span className="font-medium">{dimensions.height} cm</span>
+        <span className="mx-1">×</span>
+        <span className="font-medium">{dimensions.depth} cm</span>
+      </div>
+    </Html>
+  )
+}
+
 export default function Furniture3DViewer({
   product,
   finish,
@@ -138,6 +196,41 @@ export default function Furniture3DViewer({
         ]
   )
 
+  const [selectedFinish, setSelectedFinish] = useState<Finish | undefined>(undefined)
+
+  const materialSwatches = Object.entries(FINISH_PRESETS).map(([key, f], i) => (
+    <MaterialSwatch
+      key={key}
+      finish={f}
+      index={i}
+      total={Object.keys(FINISH_PRESETS).length}
+      onSelect={() => setSelectedFinish(f)}
+    />
+  ))
+
+  const [is3DActive, setIs3DActive] = useState(false)
+
+  // Listen for 3D controls activation/deactivation from touch badge
+  useEffect(() => {
+    const handleActivate = () => {
+      setIs3DActive(true)
+      document.body.style.overflow = 'hidden'
+    }
+
+    const handleDeactivate = () => {
+      setIs3DActive(false)
+      document.body.style.overflow = ''
+    }
+
+    window.addEventListener('3d-controls:activate', handleActivate)
+    window.addEventListener('3d-controls:deactivate', handleDeactivate)
+
+    return () => {
+      window.removeEventListener('3d-controls:activate', handleActivate)
+      window.removeEventListener('3d-controls:deactivate', handleDeactivate)
+    }
+  }, [])
+
   return (
     <div className={`relative ${className}`}>
       {showControls && (
@@ -170,6 +263,7 @@ export default function Furniture3DViewer({
       )}
 
       <Canvas
+        frameloop="demand"
         dpr={[1, 1.75]}
         camera={{ position: [4.2, 2.2, 5.2], fov: 40 }}
         gl={{ antialias: true, alpha: true }}
@@ -191,7 +285,7 @@ export default function Furniture3DViewer({
               {product.modelUrl ? (
                 <GLBModel url={product.modelUrl} />
               ) : (
-                <ProceduralFurniture product={product} finish={finish} explode={explodeT} />
+                <ProceduralFurniture product={product} finish={selectedFinish ?? finish} explode={explodeT} />
               )}
             </group>
           </Bounds>
@@ -213,8 +307,9 @@ export default function Furniture3DViewer({
                 onToggle={() => setOpenSpot(openSpot === s.id ? null : s.id)}
               />
             ))}
+
           <OrbitControls
-            enabled={interactive}
+            enabled={interactive && !is3DActive}
             enablePan={false}
             enableZoom={interactive}
             minDistance={3}
@@ -227,8 +322,45 @@ export default function Furniture3DViewer({
             dampingFactor={0.08}
             target={[0, explodeT > 0 ? 0.6 : 0.3, 0]}
           />
+
+          {/* Dimension HUD Overlay */}
+          <DimensionHUD dimensions={d} position={[0, -0.15, 0]} />
+
+          {/* Material Swatches Panel */}
+          {selectedFinish && (
+            <Html position={[0, -2.5, 0]} center distanceFactor={5}>
+              <div className="pointer-events-auto flex items-center gap-3">
+                <span className="text-xs text-teak uppercase">Swatch Selection</span>
+                {materialSwatches}
+              </div>
+            </Html>
+          )}
+
+          {/* Live Fabric Reflection */}
+          <mesh
+            position={[0.5, 0.5, -0.5]}
+            rotation={[-Math.PI / 2, 0, 0]}
+            receiveShadow
+          >
+            <planeGeometry args={[3, 2]}
+            />
+            <meshStandardMaterial
+              color={selectedFinish?.color ?? finish.color}
+              roughness={selectedFinish?.roughness ?? finish.roughness}
+              metalness={0.1}
+            />
+          </mesh>
         </Suspense>
       </Canvas>
+
+      {/* 3D Controls Toggle - shown only when is3DActive */}
+      {is3DActive && (
+        <div className="absolute top-4 right-4 z-[200] p-2 rounded-full bg-white/90 hover:bg-white text-espresso transition-colors shadow-lg">
+          <button onClick={() => setIs3DActive(false)} aria-label="Lock page scroll">
+            <RotateCcw size={24} />
+          </button>
+        </div>
+      )}
     </div>
   )
 }

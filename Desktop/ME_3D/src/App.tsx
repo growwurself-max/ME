@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useEffect, useCallback, useState } from 'react'
 import Navbar from './components/Navbar'
 import Hero from './components/Hero'
 import CollectionShowcase from './components/CollectionShowcase'
@@ -11,9 +11,23 @@ import CursorFollower from './components/CursorFollower'
 import { useSmoothScroll } from './lib/smoothScroll'
 
 export default function App() {
-  useSmoothScroll()
+  const { lenis, gsap, ScrollTrigger } = useSmoothScroll()
   const [quoteOpen, setQuoteOpen] = useState(false)
   const openQuote = useCallback(() => setQuoteOpen(true), [])
+
+  // Sync Lenis with GSAP ticker on every frame
+  useEffect(() => {
+    const raf = (time: number) => {
+      lenis.current?.raf(time * 1000)
+      requestAnimationFrame(raf)
+    }
+
+    gsap.ticker.add(raf)
+
+    return () => {
+      gsap.ticker.remove(raf)
+    }
+  }, [lenis])
 
   return (
     <div className="relative">

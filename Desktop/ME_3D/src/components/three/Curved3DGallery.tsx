@@ -212,6 +212,7 @@ export default function Curved3DGallery({ items, onItemClick }: Curved3DGalleryP
     <div className="relative w-full h-[500px] md:h-[600px] rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(to bottom right, #E0DAD2, #D4CDC3)' }}>
       <Canvas
         camera={{ position: [0, 0, 8], fov: isMobile ? 60 : 50 }}
+        frameloop="demand"
         gl={{ antialias: true, alpha: true }}
       >
         <GalleryScene items={items} onItemClick={onItemClick} />
