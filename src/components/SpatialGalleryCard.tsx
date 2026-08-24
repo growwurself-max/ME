@@ -76,6 +76,7 @@ export default function SpatialGalleryCard({ item, onInspect }: SpatialGalleryCa
             alt={item.title}
             className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
             loading="lazy"
+            crossOrigin="anonymous"
           />
           
           {/* Dynamic Sheen Effect */}

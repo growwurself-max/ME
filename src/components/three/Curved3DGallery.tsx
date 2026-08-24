@@ -1,9 +1,8 @@
 import { useRef, useState, useEffect, useMemo } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { OrbitControls, Environment, ContactShadows, Html } from '@react-three/drei'
+import { OrbitControls, Environment, ContactShadows, Html, useGSAP } from '@react-three/drei'
 import { GalleryItem } from '../../data/galleryData'
 import * as THREE from 'three'
-import gsap from 'gsap'
 
 interface Curved3DGalleryProps {
   items: GalleryItem[]
@@ -40,32 +39,25 @@ function GalleryItem3D({
     }
   })
 
-  // Handle hover animation separately
+  // Handle hover animation with useGSAP - automatically waits for Canvas mounting
+  // and provides proper cleanup on unmount
+  const hoverGSAP = useGSAP(meshRef.current, {
+    rotation: { y: rotationY },
+    x: x,
+    z: z,
+    duration: 0.3,
+    paused: true,
+  })
+
+  // Control hover animation based on state - runs after Canvas mount
   useEffect(() => {
-    if (meshRef.current) {
-      if (hovered) {
-        gsap.to(meshRef.current.position, {
-          x: x * 1.1,
-          z: (z + radius) * 1.1 - radius,
-          duration: 0.3,
-        })
-        gsap.to(meshRef.current.rotation, {
-          y: rotationY + 0.1,
-          duration: 0.3,
-        })
-      } else {
-        gsap.to(meshRef.current.position, {
-          x,
-          z,
-          duration: 0.3,
-        })
-        gsap.to(meshRef.current.rotation, {
-          y: rotationY,
-          duration: 0.3,
-        })
-      }
+    if (!meshRef.current) return
+    if (hovered) {
+      hoverGSAP.current.play()
+    } else {
+      hoverGSAP.current.reverse()
     }
-  }, [hovered, x, z, radius, rotationY])
+  }, [hovered, meshRef.current])
 
   return (
     <group position={[x, 0, z]}>
@@ -93,11 +85,12 @@ function GalleryItem3D({
             transition: 'transform 0.3s ease'
           }}
         >
-          <img
+<img
             src={item.imagePath}
             alt={item.title}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
             loading="lazy"
+            crossOrigin="anonymous"
           />
         </div>
       </Html>

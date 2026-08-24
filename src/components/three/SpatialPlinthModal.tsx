@@ -134,6 +134,7 @@ export default function SpatialPlinthModal({ item, onClose }: SpatialPlinthModal
                 alt={item.title}
                 className="max-h-[60%] max-w-[80%] object-contain rounded-lg shadow-2xl"
                 onError={() => setImageError(true)}
+                crossOrigin="anonymous"
               />
               {imageError && (
                 <div className="text-center p-8 bg-white/90 rounded-lg">
