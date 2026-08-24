@@ -228,6 +228,7 @@ export default function Furniture3DViewer({
     return () => {
       window.removeEventListener('3d-controls:activate', handleActivate)
       window.removeEventListener('3d-controls:deactivate', handleDeactivate)
+      document.body.style.overflow = ''
     }
   }, [])
 

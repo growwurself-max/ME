@@ -122,6 +122,7 @@ export default function HeroScene({ lightMode = 0.5 }: { lightMode?: number }) {
     return () => {
       window.removeEventListener('3d-controls:activate', handleActivate)
       window.removeEventListener('3d-controls:deactivate', handleDeactivate)
+      document.body.style.overflow = ''
     }
   }, [])
 
