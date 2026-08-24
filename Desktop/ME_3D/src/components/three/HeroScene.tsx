@@ -37,14 +37,14 @@ function Particles({ count = 220 }: { count?: number }) {
   )
 }
 
-function ScrollRig({
-  children,
-  lenisRef,
-}: {
-  children: React.ReactNode
-  lenisRef: ReturnType<typeof useSmoothScroll>['lenis']
-}) {
+function ScrollRig({ children }: { children: React.ReactNode }) {
   const group = useRef<THREE.Group>(null)
+  const lenisRef = useRef<any>(null)
+
+  useEffect(() => {
+    const { lenis } = useSmoothScroll()
+    lenisRef.current = lenis
+  }, [])
 
   useFrame((state) => {
     if (!group.current) return
@@ -146,7 +146,7 @@ export default function HeroScene({ lightMode = 0.5 }: { lightMode?: number }) {
       >
         <RoomEnvironment intensity={1.05} lightMode={lightMode} />
         <Float speed={1.2} rotationIntensity={0.15} floatIntensity={0.35}>
-          <ScrollRig lenisRef={lenis}>
+          <ScrollRig>
             <ProceduralFurniture product={sofa} finish={FINISH_PRESETS.velvetEmerald} />
           </ScrollRig>
         </Float>

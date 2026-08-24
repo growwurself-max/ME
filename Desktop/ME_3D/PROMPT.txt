@@ -1,0 +1,91 @@
+# MISSION: Rebuild Mokshaa Enterprises into a Next-Gen 3D Interactive Web Experience
+
+## 1. PROJECT CONTEXT & GOAL
+You are a Principal Creative Technologist and Senior Frontend Architect. Your goal is to redesign and rebuild the website for **Mokshaa Enterprises** (Reference live site: https://www.mokshaaenterprises.com/index.html) into an Awwwards-style, high-performance, 3D interactive e-commerce and showcase website.
+
+The site must feature:
+- A smooth, cinematic, 3D scroll-driven showroom.
+- Interactive 3D product previews (360° rotation, material/color swatches, zoom, AR ready).
+- Fluid kinetic typography and scroll animations.
+- Full business context, catalog items, and direct inquiry/WhatsApp conversion funnels.
+
+---
+
+## 2. RECOMMENDED TECH STACK
+- **Framework**: Next.js 14+ (App Router) or React 18+ with Vite & TypeScript
+- **Styling**: Tailwind CSS + Shadcn UI (for clean, accessible overlays)
+- **3D Engine**: Three.js / React Three Fiber (`@react-three/fiber`), `@react-three/drei`
+- **Animations**: GSAP + ScrollTrigger (or Framer Motion) + `@studio-freight/lenis` (smooth scroll)
+- **Icons**: Lucide-React
+
+---
+
+## 3. BUSINESS ASSETS & EXTRACTED DATA TO PRESERVE
+- **Brand Name**: Mokshaa Enterprises (Tagline: "Crafting Comfort for Every Space" / "Sleep Beyond Boundaries")
+- **Product Categories**:
+  1. Sofas (L-Shape, Recliner, Luxury Fabric, Chesterfield)
+  2. Cots & Beds (Premium Wooden Cots, Hydraulic Storage Beds, Kids/Metal Cots)
+  3. Dining (Solid Wood Dining Sets, Marble-top Tables)
+  4. Mattresses (Orthopedic, Memory Foam, Pocket Spring)
+  5. Coffee Tables & Accent Furniture
+- **Contact & Locations**:
+  - Primary Address: Plot No 84/P, Opp Lakshyam School, Subhash Nagar, Jeedimetla, Hyderabad, Telangana 500055
+  - Branch: Pentapadu, Tadepalligudem, Andhra Pradesh
+  - Phones: +91 9603077444 / +91 9603177444
+  - Email: info@mokshaaenterprises.com / srinug41@gmail.com
+- **Key Value Propositions**: Custom Dimensions, Premium Hardwood & Foam, Factory Direct Pricing, Pan-India / Regional Delivery, 5-10 Year Warranty.
+
+---
+
+## 4. CORE FEATURES & ARCHITECTURE TO BUILD
+
+### A. "Magical" Hero Section & 3D Visualizer
+- Implement an interactive Three.js/R3F hero canvas:
+  - Centerpiece: A luxury 3D furniture model (e.g., modern sofa or ergonomic bed).
+  - Floating studio lighting setup (`Environment`, `ContactShadows`, soft ambient light, warm rim lighting).
+  - **Scroll Effect**: As the user scrolls down, the 3D model smoothly rotates 180 degrees, scales down, and docks into a feature showcase section.
+  - Floating micro-particles/dust particles in the background for depth and atmosphere.
+
+### B. Interactive 3D Product Previews & Configurator
+- Create a reusable `<Furniture3DViewer />` component for catalog products:
+  - Support for `.gltf` / `.glb` models (with procedural 3D geometric fallback placeholders if models are loading).
+  - **Features**:
+    - OrbitControls with smooth dampening (auto-rotation when idle).
+    - **Color / Material Switcher**: Clickable swatches (e.g., Velvet Emerald, Royal Blue, Leather Tan, Charcoal Grey) that dynamically update the model material color/roughness in real-time.
+    - **Dimension Hotspots / Annotations**: Clickable 3D pulse pins displaying dimensions (Width, Depth, Height).
+    - **Full-Screen 3D Modal**: Clicking "Inspect in 3D" opens a full-screen interactive modal with lighting controls and an "Augmented Reality (AR)" button (using `<model-viewer>` or WebXR fallback).
+
+### C. Scroll Experience & Kinetic Animations
+- Integrate **Lenis** for momentum/inertial scrolling.
+- Add GSAP ScrollTrigger (or Framer Motion) effects:
+  - **Horizontal Scroll Showroom**: Category slider displaying Sofas, Cots, Mattresses with parallax depth layers.
+  - **Text Reveal**: Headers split into words/chars that glide up smoothly on scroll.
+  - **Magnetic Buttons & Cursor Follower**: Floating cursor with "Drag / Rotate" label when hovering over 3D canvases.
+
+### D. Direct Lead Generation & E-Commerce Flow
+- **Floating WhatsApp Quick Action**: Direct link to `https://wa.me/919603077444?text=Hi%20Mokshaa%20Enterprises,%20I%20am%20interested%20in%20custom%20furniture.`
+- **Request a Quote / Custom Dimension Builder**: A sleek modal where users select category, enter custom room measurements, and receive instant WhatsApp or email quotes.
+- **Store Locator & Contact Section**: Embedded interactive map card with Hyderabad & AP locations.
+
+---
+
+## 5. STEP-BY-STEP EXECUTION PLAN FOR AGENT
+1. **Initialize Project**: Scaffold project with TypeScript, Tailwind CSS, `@react-three/fiber`, `@react-three/drei`, `three`, `gsap`, and `lenis`.
+2. **Design System**: Set up a luxurious dark-and-warm palette (Deep Charcoal `#0f0f11`, Warm Amber/Gold `#D4AF37`, Off-White `#F5F5F7`, Soft Muted Gray `#8E8E93`).
+3. **Data Layer**: Create `src/data/products.ts` containing the full categorized Mokshaa Enterprises inventory with specs, dimensions, mock 3D GLB URLs (e.g., standard free Three.js / Khronos GLB models), and imagery.
+4. **3D Components**:
+   - `HeroScene.tsx`: 3D Canvas with camera rigs and ambient illumination.
+   - `ModelViewerModal.tsx`: Product visualizer with material changer and dimension hotspots.
+   - `RoomEnvironment.tsx`: Realistic studio lighting setup.
+5. **UI Pages & Sections**:
+   - `Navbar`: Glassmorphic navigation with sticky blur.
+   - `Hero`: 3D scroll-driven intro.
+   - `CollectionShowcase`: Interactive 3D preview cards.
+   - `CraftsmanshipStory`: Why Mokshaa (materials, foam layers, joinery).
+   - `ContactFooter`: Location badges, WhatsApp trigger, inquiry form.
+6. **Performance Optimization**:
+   - Lazy load 3D canvases using `Suspense` and `Html` loader from Drei.
+   - Use low-poly meshes / Draco-compressed GLB models.
+   - Graceful fallback for mobile/low-spec devices (fall back to high-res WebP gallery if WebGL is unavailable).
+
+Please generate the complete, production-ready code structure and implement all components step by step. do not interep the live one crete req files and just start now finish fast 
