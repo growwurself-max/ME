@@ -1,13 +1,10 @@
 import { Suspense, useMemo, useRef, useEffect, useState } from 'react'
-import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { Float, Html } from '@react-three/drei'
+import { Canvas, useFrame } from '@react-three/fiber'
+import { Html } from '@react-three/drei'
 import * as THREE from 'three'
 import { useSmoothScroll } from '../../lib/smoothScroll'
 import RoomEnvironment from './RoomEnvironment'
-import { ProceduralFurniture } from './ProceduralFurniture'
-import { PRODUCTS, FINISH_PRESETS } from '../../data/products'
 import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing'
-import { gsap } from '../../lib/smoothScroll'
 
 function Particles({ count = 220 }: { count?: number }) {
   const ref = useRef<THREE.Points>(null)
@@ -41,7 +38,7 @@ function Particles({ count = 220 }: { count?: number }) {
 function ScrollRig({
   children,
 }: {
-  children: React.ReactNode
+  children?: React.ReactNode
 }) {
   const group = useRef<THREE.Group>(null)
 
@@ -99,7 +96,6 @@ function ScrollRig({
 }
 
 export default function HeroScene({ lightMode = 0.5 }: { lightMode?: number }) {
-  const sofa = PRODUCTS[0]
   const { lenis } = useSmoothScroll()
   const [is3DActive, setIs3DActive] = useState(false)
   const scrollProgress = useRef(0)
@@ -165,7 +161,7 @@ export default function HeroScene({ lightMode = 0.5 }: { lightMode?: number }) {
     }
   }, [])
 
-  return (
+return (
     <Canvas
       dpr={[1, 1.75]}
       camera={{ position: [0, 1.2, 6], fov: 42 }}
@@ -177,26 +173,22 @@ export default function HeroScene({ lightMode = 0.5 }: { lightMode?: number }) {
       }}
       className="fixed inset-0 z-0 w-full h-full"
     >
-<Suspense
-          fallback={
-            <Html center>
-              <div className="text-teak text-sm tracking-widest animate-pulse">LOADING SHOWROOM…</div>
-            </Html>
-          }
-        >
-          <RoomEnvironment intensity={1.05} lightMode={lightMode} />
-          <Float speed={1.2} rotationIntensity={0.15} floatIntensity={0.35}>
-            <ScrollRig>
-              <ProceduralFurniture product={sofa} finish={FINISH_PRESETS.velvetEmerald} />
-            </ScrollRig>
-          </Float>
-          <Particles />
+      <Suspense
+        fallback={
           <Html center>
-            <div className="text-teak text-sm tracking-widest">
-              Scroll to navigate the showroom
-            </div>
+            <div className="text-teak text-sm tracking-widest animate-pulse">LOADING SHOWROOM…</div>
           </Html>
-        </Suspense>
+        }
+      >
+        <RoomEnvironment intensity={1.05} lightMode={lightMode} />
+        <Particles />
+        <ScrollRig />
+        <Html center>
+          <div className="text-teak text-sm tracking-widest">
+            Scroll to navigate the showroom
+          </div>
+        </Html>
+      </Suspense>
     </Canvas>
   )
 }
