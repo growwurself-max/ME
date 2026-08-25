@@ -59,42 +59,49 @@ export default function Hero() {
   }, [])
 
   return (
-    <section id="top" className="relative h-[100svh] min-h-[620px] overflow-hidden">
-      {!videoError && (
-        <video
-          ref={videoRef}
-          src="/intro.mp4"
-          autoPlay
-          muted
-          playsInline
-          preload="auto"
-          className="absolute inset-0 object-cover w-full h-full z-0"
-          aria-hidden="true"
-        />
-      )}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_35%,#FFFFFF_0%,#FAF8F5_45%,#F2EDE4_100%)] z-[1]" />
-      <Suspense fallback={null}>
-        <HeroScene lightMode={lightMode} />
-      </Suspense>
+    <>
+      {/* Scroll track container - provides actual scroll height for desktop mouse wheel */}
+      <div id="scroll-track" className="h-[500vh] w-full pointer-events-none" aria-hidden="true" />
+      
+      <section id="top" className="relative h-[100svh] min-h-[620px] overflow-hidden fixed inset-0 z-0">
+        {/* Video background - plays as cinematic opening */}
+        {!videoError && (
+          <video
+            ref={videoRef}
+            src="/intro.mp4"
+            autoPlay
+            muted
+            playsInline
+            preload="auto"
+            className="absolute inset-0 object-cover w-full h-full z-[-1]"
+            aria-hidden="true"
+          />
+        )}
+        
+        {/* 3D Showroom Canvas - renders ON TOP of video, below UI */}
+        <Suspense fallback={null}>
+          <HeroScene lightMode={lightMode} />
+        </Suspense>
 
-      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-between py-20 text-center">
-        <div className="mt-8">
-          <p className="mb-3 flex items-center justify-center gap-2 text-xs tracking-[0.4em] text-brass uppercase">
-            <Sparkles size={13} /> Since Hyderabad · Est. Craftsmanship
-          </p>
-          <h1 className="font-display text-5xl sm:text-7xl lg:text-8xl leading-tight tracking-tight mb-2" style={{ color: '#1F1D1A' }}>
-            Crafting Comfort
-            <br />
-            <span className="italic gold-gradient-text">for Every Space</span>
-          </h1>
-        </div>
+        {/* UI Overlay Content */}
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-between py-20 text-center z-10">
+          <div className="mt-8">
+            <p className="mb-3 flex items-center justify-center gap-2 text-xs tracking-[0.4em] text-brass uppercase">
+              <Sparkles size={13} /> Since Hyderabad · Est. Craftsmanship
+            </p>
+            <h1 className="font-display text-5xl sm:text-7xl lg:text-8xl leading-tight tracking-tight mb-2" style={{ color: '#1F1D1A' }}>
+              Crafting Comfort
+              <br />
+              <span className="italic gold-gradient-text">for Every Space</span>
+            </h1>
+          </div>
 
-        <div className="pointer-events-auto flex flex-col items-center gap-6">
-          <p className="max-w-md text-sm leading-relaxed px-6" style={{ color: '#54504A' }}>
-            Luxury sofas, cots, dining sets & mattresses — custom-built with premium hardwood and
-            factory-direct pricing. Scroll to enter the 3D showroom.
-          </p>
-          <div className="flex gap-4">
+          <div className="pointer-events-auto flex flex-col items-center gap-6">
+            <p className="max-w-md text-sm leading-relaxed px-6" style={{ color: '#54504A' }}>
+              Luxury sofas, cots, dining sets & mattresses — custom-built with premium hardwood and
+              factory-direct pricing. Scroll to enter the 3D showroom.
+            </p>
+            <div className="flex gap-4">
 <MagneticButton
   href="#collection"
   label="EXPLORE"
@@ -115,18 +122,19 @@ export default function Hero() {
             >
               Get a Quote
             </MagneticButton>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="absolute bottom-5 left-1/2 z-20 -translate-x-1/2 animate-bounce text-slate/70">
-        <ArrowDown size={18} />
-      </div>
+        <div className="absolute bottom-5 left-1/2 z-20 -translate-x-1/2 animate-bounce text-slate/70">
+          <ArrowDown size={18} />
+        </div>
 
-      {/* Floating day-to-night lighting simulator over the showroom canvas */}
-      <div className="absolute bottom-8 left-6 z-20 hidden sm:block">
-        <LightSimulator mode={lightMode} onChange={setLightMode} />
-      </div>
-    </section>
+        {/* Floating day-to-night lighting simulator over the showroom canvas */}
+        <div className="absolute bottom-8 left-6 z-20 hidden sm:block">
+          <LightSimulator mode={lightMode} onChange={setLightMode} />
+        </div>
+      </section>
+    </>
   )
 }

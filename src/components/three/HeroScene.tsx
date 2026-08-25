@@ -1,5 +1,5 @@
 import { Suspense, useMemo, useRef, useEffect, useState } from 'react'
-import { Canvas, useFrame } from '@react-three/fiber'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Float, Html } from '@react-three/drei'
 import * as THREE from 'three'
 import { useSmoothScroll } from '../../lib/smoothScroll'
@@ -7,6 +7,7 @@ import RoomEnvironment from './RoomEnvironment'
 import { ProceduralFurniture } from './ProceduralFurniture'
 import { PRODUCTS, FINISH_PRESETS } from '../../data/products'
 import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing'
+import { gsap } from '../../lib/smoothScroll'
 
 function Particles({ count = 220 }: { count?: number }) {
   const ref = useRef<THREE.Points>(null)
@@ -39,20 +40,18 @@ function Particles({ count = 220 }: { count?: number }) {
 
 function ScrollRig({
   children,
-  lenisRef,
 }: {
   children: React.ReactNode
-  lenisRef: ReturnType<typeof useSmoothScroll>['lenis']
 }) {
   const group = useRef<THREE.Group>(null)
 
   useFrame((state) => {
     if (!group.current) return
 
-    // Get scroll progress from Lenis
-    const currentScroll = lenisRef.current ? lenisRef.current.scroll : 0
-    const doc = document.documentElement
-    const maxScroll = Math.max(doc.scrollHeight - window.innerHeight, 1)
+    // Get scroll progress from scroll-track element
+    const track = document.getElementById('scroll-track')
+    const currentScroll = window.scrollY || document.documentElement.scrollTop
+    const maxScroll = track ? track.scrollHeight - window.innerHeight : Math.max(document.documentElement.scrollHeight - window.innerHeight, 1)
     const p = Math.min(1, currentScroll / maxScroll)
     const heroP = Math.min(1, p * 4)
 
@@ -103,6 +102,40 @@ export default function HeroScene({ lightMode = 0.5 }: { lightMode?: number }) {
   const sofa = PRODUCTS[0]
   const { lenis } = useSmoothScroll()
   const [is3DActive, setIs3DActive] = useState(false)
+  const scrollProgress = useRef(0)
+
+  // Wheel fallback for desktop - drives scroll progress directly
+  useEffect(() => {
+    const handleWheel = (e: WheelEvent) => {
+      const track = document.getElementById('scroll-track')
+      if (!track) return
+      const maxScroll = track.scrollHeight - window.innerHeight
+      const currentScroll = window.scrollY || document.documentElement.scrollTop
+      const newScroll = Math.min(maxScroll, Math.max(0, currentScroll + e.deltaY))
+      window.scrollTo({ top: newScroll, behavior: 'auto' })
+    }
+
+    window.addEventListener('wheel', handleWheel, { passive: true })
+    return () => window.removeEventListener('wheel', handleWheel)
+  }, [])
+
+  // Sync Lenis scroll to scroll-track element
+  useEffect(() => {
+    const track = document.getElementById('scroll-track')
+    if (!track || !lenis.current) return
+
+    const syncScroll = () => {
+      if (!lenis.current) return
+      const targetScroll = window.scrollY || document.documentElement.scrollTop
+      lenis.current.scrollTo(targetScroll, { immediate: true, lock: false })
+    }
+
+    const raf = () => {
+      syncScroll()
+      requestAnimationFrame(raf)
+    }
+    raf()
+  }, [lenis])
 
   // Listen for 3D controls activation/deactivation from touch badge
   useEffect(() => {
@@ -142,28 +175,28 @@ export default function HeroScene({ lightMode = 0.5 }: { lightMode?: number }) {
         gl.toneMappingExposure = 1.15
         gl.toneMapping = THREE.ACESFilmicToneMapping
       }}
-      className="!absolute !inset-0 pointer-events-none"
+      className="fixed inset-0 z-0 w-full h-full"
     >
-      <Suspense
-        fallback={
+<Suspense
+          fallback={
+            <Html center>
+              <div className="text-teak text-sm tracking-widest animate-pulse">LOADING SHOWROOM…</div>
+            </Html>
+          }
+        >
+          <RoomEnvironment intensity={1.05} lightMode={lightMode} />
+          <Float speed={1.2} rotationIntensity={0.15} floatIntensity={0.35}>
+            <ScrollRig>
+              <ProceduralFurniture product={sofa} finish={FINISH_PRESETS.velvetEmerald} />
+            </ScrollRig>
+          </Float>
+          <Particles />
           <Html center>
-            <div className="text-teak text-sm tracking-widest animate-pulse">LOADING SHOWROOM…</div>
+            <div className="text-teak text-sm tracking-widest">
+              Scroll to navigate the showroom
+            </div>
           </Html>
-        }
-      >
-        <RoomEnvironment intensity={1.05} lightMode={lightMode} />
-        <Float speed={1.2} rotationIntensity={0.15} floatIntensity={0.35}>
-          <ScrollRig lenisRef={lenis}>
-            <ProceduralFurniture product={sofa} finish={FINISH_PRESETS.velvetEmerald} />
-          </ScrollRig>
-        </Float>
-        <Particles />
-        <Html center>
-          <div className="text-teak text-sm tracking-widest">
-            Scroll to navigate the showroom
-          </div>
-        </Html>
-      </Suspense>
+        </Suspense>
     </Canvas>
   )
 }
