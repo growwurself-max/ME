@@ -1,4 +1,4 @@
-import { Suspense, lazy, useState } from 'react'
+import { Suspense, lazy, useState, useEffect, useRef } from 'react'
 import { ArrowDown, Sparkles } from 'lucide-react'
 import MagneticButton from './MagneticButton'
 import { LightSimulator } from './three/Furniture3DViewer'
@@ -7,19 +7,68 @@ const HeroScene = lazy(() => import('./three/HeroScene'))
 
 export default function Hero() {
   const [lightMode, setLightMode] = useState(0.5)
+  const [videoError, setVideoError] = useState(false)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const safetyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+
+    const handleEnded = () => {
+      console.log('[Hero] Video ended')
+    }
+
+    const handleError = (e: Event) => {
+      console.error('[Hero] Video error:', e)
+      setVideoError(true)
+      if (safetyTimeoutRef.current) {
+        clearTimeout(safetyTimeoutRef.current)
+        safetyTimeoutRef.current = null
+      }
+    }
+
+    const handleCanPlay = () => {
+      console.log('[Hero] Video can play')
+    }
+
+    video.addEventListener('ended', handleEnded)
+    video.addEventListener('error', handleError)
+    video.addEventListener('canplay', handleCanPlay)
+
+    safetyTimeoutRef.current = setTimeout(() => {
+      if (video.readyState < 2) {
+        console.warn('[Hero] Video safety timeout - autoplay likely blocked')
+        setVideoError(true)
+      }
+    }, 5000)
+
+    return () => {
+      video.removeEventListener('ended', handleEnded)
+      video.removeEventListener('error', handleError)
+      video.removeEventListener('canplay', handleCanPlay)
+      if (safetyTimeoutRef.current) {
+        clearTimeout(safetyTimeoutRef.current)
+        safetyTimeoutRef.current = null
+      }
+    }
+  }, [])
 
   return (
     <section id="top" className="relative h-[100svh] min-h-[620px] overflow-hidden">
-      <video
-        src="/intro.mp4"
-        autoPlay
-        muted
-        playsInline
-        loop
-        className="absolute inset-0 object-cover w-full h-full z-0"
-        aria-hidden="true"
-      />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_35%,#FFFFFF_0%,#FAF8F5_45%,#F2EDE4_100%)]" />
+      {!videoError && (
+        <video
+          ref={videoRef}
+          src="/intro.mp4"
+          autoPlay
+          muted
+          playsInline
+          preload="auto"
+          className="absolute inset-0 object-cover w-full h-full z-0"
+          aria-hidden="true"
+        />
+      )}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_35%,#FFFFFF_0%,#FAF8F5_45%,#F2EDE4_100%)] z-[1]" />
       <Suspense fallback={null}>
         <HeroScene lightMode={lightMode} />
       </Suspense>

@@ -106,12 +106,16 @@ export default function HeroScene({ lightMode = 0.5 }: { lightMode?: number }) {
 
   // Listen for 3D controls activation/deactivation from touch badge
   useEffect(() => {
+    let isActive = false
+
     const handleActivate = () => {
+      isActive = true
       setIs3DActive(true)
       document.body.style.overflow = 'hidden'
     }
 
     const handleDeactivate = () => {
+      isActive = false
       setIs3DActive(false)
       document.body.style.overflow = ''
     }
@@ -122,7 +126,9 @@ export default function HeroScene({ lightMode = 0.5 }: { lightMode?: number }) {
     return () => {
       window.removeEventListener('3d-controls:activate', handleActivate)
       window.removeEventListener('3d-controls:deactivate', handleDeactivate)
-      document.body.style.overflow = ''
+      if (isActive) {
+        document.body.style.overflow = ''
+      }
     }
   }, [])
 

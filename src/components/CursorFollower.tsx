@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { X } from 'lucide-react'
 
 export default function CursorFollower() {
   const dot = useRef<HTMLDivElement>(null)
@@ -7,6 +8,8 @@ export default function CursorFollower() {
   const [isTouchDevice, setIsTouchDevice] = useState(
     window.matchMedia('(pointer: coarse)').matches
   )
+  const badgeRef = useRef<HTMLDivElement | null>(null)
+  const toggleRef = useRef<HTMLButtonElement | null>(null)
 
   useEffect(() => {
     const onResize = () => {
@@ -16,14 +19,6 @@ export default function CursorFollower() {
     return () => window.removeEventListener('resize', onResize)
   }, [])
 
-  // Ensure normal scroll on mount
-  useEffect(() => {
-    document.body.style.overflow = ''
-    return () => {
-      document.body.style.overflow = ''
-    }
-  }, [])
-
   useEffect(() => {
     if (isTouchDevice) {
       const badge = document.createElement('div')
@@ -31,14 +26,19 @@ export default function CursorFollower() {
       badge.innerHTML = 'Tap to Rotate 3D'
       badge.style.display = 'block'
       document.body.appendChild(badge)
+      badgeRef.current = badge
 
       const toggle = document.createElement('button')
       toggle.className = 'fixed top-4 right-4 z-[200] p-2 rounded-full bg-white/90 hover:bg-white text-espresso transition-colors shadow-lg'
       toggle.innerHTML = '<X size={24} />'
       toggle.style.display = 'none'
       document.body.appendChild(toggle)
+      toggleRef.current = toggle
+
+      let is3DActive = false
 
       function activate3DControls() {
+        is3DActive = true
         badge.style.display = 'none'
         toggle.style.display = 'block'
         document.body.style.overflow = 'hidden'
@@ -46,6 +46,7 @@ export default function CursorFollower() {
       }
 
       function deactivate3DControls() {
+        is3DActive = false
         badge.style.display = 'block'
         toggle.style.display = 'none'
         document.body.style.overflow = ''
@@ -58,9 +59,17 @@ export default function CursorFollower() {
       return () => {
         badge.removeEventListener('click', activate3DControls)
         toggle.removeEventListener('click', deactivate3DControls)
-        document.body.removeChild(badge)
-        document.body.removeChild(toggle)
-        document.body.style.overflow = ''
+        if (badge.parentNode) {
+          badge.parentNode.removeChild(badge)
+        }
+        if (toggle.parentNode) {
+          toggle.parentNode.removeChild(toggle)
+        }
+        if (is3DActive) {
+          document.body.style.overflow = ''
+        }
+        badgeRef.current = null
+        toggleRef.current = null
       }
     }
   }, [isTouchDevice])
