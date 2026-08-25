@@ -142,7 +142,7 @@ export default function HeroScene({ lightMode = 0.5 }: { lightMode?: number }) {
         gl.toneMappingExposure = 1.15
         gl.toneMapping = THREE.ACESFilmicToneMapping
       }}
-      className="!absolute !inset-0"
+      className="!absolute !inset-0 pointer-events-none"
     >
       <Suspense
         fallback={

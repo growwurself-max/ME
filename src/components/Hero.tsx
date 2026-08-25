@@ -17,11 +17,13 @@ export default function Hero() {
 
     const handleEnded = () => {
       console.log('[Hero] Video ended')
+      video.style.pointerEvents = 'none'
     }
 
     const handleError = (e: Event) => {
       console.error('[Hero] Video error:', e)
       setVideoError(true)
+      video.style.pointerEvents = 'none'
       if (safetyTimeoutRef.current) {
         clearTimeout(safetyTimeoutRef.current)
         safetyTimeoutRef.current = null
@@ -40,6 +42,7 @@ export default function Hero() {
       if (video.readyState < 2) {
         console.warn('[Hero] Video safety timeout - autoplay likely blocked')
         setVideoError(true)
+        video.style.pointerEvents = 'none'
       }
     }, 5000)
 
@@ -47,6 +50,7 @@ export default function Hero() {
       video.removeEventListener('ended', handleEnded)
       video.removeEventListener('error', handleError)
       video.removeEventListener('canplay', handleCanPlay)
+      video.style.pointerEvents = 'none'
       if (safetyTimeoutRef.current) {
         clearTimeout(safetyTimeoutRef.current)
         safetyTimeoutRef.current = null
