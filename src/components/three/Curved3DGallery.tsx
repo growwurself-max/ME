@@ -1,8 +1,9 @@
 import { useRef, useState, useEffect, useMemo } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { OrbitControls, Environment, ContactShadows, Html, useGSAP } from '@react-three/drei'
+import { OrbitControls, Environment, ContactShadows, Html } from '@react-three/drei'
 import { GalleryItem } from '../../data/galleryData'
 import * as THREE from 'three'
+import gsap from 'gsap'
 
 interface Curved3DGalleryProps {
   items: GalleryItem[]
@@ -39,25 +40,32 @@ function GalleryItem3D({
     }
   })
 
-  // Handle hover animation with useGSAP - automatically waits for Canvas mounting
-  // and provides proper cleanup on unmount
-  const hoverGSAP = useGSAP(meshRef.current, {
-    rotation: { y: rotationY },
-    x: x,
-    z: z,
-    duration: 0.3,
-    paused: true,
-  })
-
-  // Control hover animation based on state - runs after Canvas mount
+  // Handle hover animation with GSAP - runs after Canvas mounting via ref check
   useEffect(() => {
-    if (!meshRef.current) return
-    if (hovered) {
-      hoverGSAP.current.play()
-    } else {
-      hoverGSAP.current.reverse()
+    if (meshRef.current) {
+      if (hovered) {
+        gsap.to(meshRef.current.position, {
+          x: x * 1.1,
+          z: (z + radius) * 1.1 - radius,
+          duration: 0.3,
+        })
+        gsap.to(meshRef.current.rotation, {
+          y: rotationY + 0.1,
+          duration: 0.3,
+        })
+      } else {
+        gsap.to(meshRef.current.position, {
+          x,
+          z,
+          duration: 0.3,
+        })
+        gsap.to(meshRef.current.rotation, {
+          y: rotationY,
+          duration: 0.3,
+        })
+      }
     }
-  }, [hovered, meshRef.current])
+  }, [hovered, x, z, radius, rotationY])
 
   return (
     <group position={[x, 0, z]}>

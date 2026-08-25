@@ -10,6 +10,15 @@ export default function Hero() {
 
   return (
     <section id="top" className="relative h-[100svh] min-h-[620px] overflow-hidden">
+      <video
+        src="/intro.mp4"
+        autoPlay
+        muted
+        playsInline
+        loop
+        className="absolute inset-0 object-cover w-full h-full z-0"
+        aria-hidden="true"
+      />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_35%,#FFFFFF_0%,#FAF8F5_45%,#F2EDE4_100%)]" />
       <Suspense fallback={null}>
         <HeroScene lightMode={lightMode} />

@@ -26,6 +26,9 @@ export function useSmoothScroll() {
 
     gsap.ticker.add(raf)
 
+    // Start Lenis explicitly
+    lenis.start()
+
     return () => {
       gsap.ticker.remove(raf)
       lenis.destroy()

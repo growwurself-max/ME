@@ -16,50 +16,51 @@ export default function CursorFollower() {
     return () => window.removeEventListener('resize', onResize)
   }, [])
 
+  // Ensure normal scroll on mount
+  useEffect(() => {
+    document.body.style.overflow = ''
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [])
+
   useEffect(() => {
     if (isTouchDevice) {
-      let badge: HTMLDivElement | null = null
-      let toggle: HTMLButtonElement | null = null
+      const badge = document.createElement('div')
+      badge.className = 'fixed bottom-8 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full bg-teak text-white text-sm font-medium shadow-lg z-[100] animate-in'
+      badge.innerHTML = 'Tap to Rotate 3D'
+      badge.style.display = 'block'
+      document.body.appendChild(badge)
 
-      const createBadge = () => {
-        badge = document.createElement('div')
-        badge.className = 'fixed bottom-8 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full bg-teak text-white text-sm font-medium shadow-lg z-[100] animate-in'
-        badge.innerHTML = 'Tap to Rotate 3D'
-        badge.style.display = 'block'
-        badge.addEventListener('click', activate3DControls)
-        document.body.appendChild(badge)
-        return badge
-      }
-
-      const createToggleButton = () => {
-        toggle = document.createElement('button')
-        toggle.className = 'fixed top-4 right-4 z-[200] p-2 rounded-full bg-white/90 hover:bg-white text-espresso transition-colors shadow-lg'
-        toggle.innerHTML = '<X size={24} />'
-        toggle.addEventListener('click', deactivate3DControls)
-        document.body.appendChild(toggle)
-        return toggle
-      }
-
-      createBadge()
-      createToggleButton()
+      const toggle = document.createElement('button')
+      toggle.className = 'fixed top-4 right-4 z-[200] p-2 rounded-full bg-white/90 hover:bg-white text-espresso transition-colors shadow-lg'
+      toggle.innerHTML = '<X size={24} />'
+      toggle.style.display = 'none'
+      document.body.appendChild(toggle)
 
       function activate3DControls() {
-        if (badge) badge.style.display = 'none'
-        if (toggle) toggle.style.display = 'block'
+        badge.style.display = 'none'
+        toggle.style.display = 'block'
         document.body.style.overflow = 'hidden'
         window.dispatchEvent(new CustomEvent('3d-controls:activate'))
       }
 
       function deactivate3DControls() {
-        if (badge) badge.style.display = 'block'
-        if (toggle) toggle.style.display = 'none'
+        badge.style.display = 'block'
+        toggle.style.display = 'none'
         document.body.style.overflow = ''
         window.dispatchEvent(new CustomEvent('3d-controls:deactivate'))
       }
 
+      badge.addEventListener('click', activate3DControls)
+      toggle.addEventListener('click', deactivate3DControls)
+
       return () => {
-        if (badge) document.body.removeChild(badge)
-        if (toggle) document.body.removeChild(toggle)
+        badge.removeEventListener('click', activate3DControls)
+        toggle.removeEventListener('click', deactivate3DControls)
+        document.body.removeChild(badge)
+        document.body.removeChild(toggle)
+        document.body.style.overflow = ''
       }
     }
   }, [isTouchDevice])
@@ -107,7 +108,7 @@ export default function CursorFollower() {
   }, [isTouchDevice])
 
   return (
-    <div className={`hidden ${isTouchDevice ? 'md:block' : 'block'} md:hidden`}>
+    <div className={`${isTouchDevice ? 'hidden' : 'block'}`}>
       <div ref={dot} className="fixed top-0 left-0 z-[200] pointer-events-none h-1.5 w-1.5 rounded-full bg-gold" />
       <div
         ref={ring}
