@@ -1,21 +1,30 @@
-import { Suspense, lazy, useEffect, useRef, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { Box, Maximize, Move3d } from 'lucide-react'
 import { CATEGORIES, FINISH_PRESETS, PRODUCTS, type Finish, type Product } from '../data/products'
 import ModelViewerModal from './three/ModelViewerModal'
 import RevealText from './RevealText'
 import TiltCard from './TiltCard'
+import Furniture3DViewer from './three/Furniture3DViewer'
 import { gsap, ScrollTrigger } from '../lib/smoothScroll'
-
-const Furniture3DViewer = lazy(() => import('./three/Furniture3DViewer'))
 
 function PanelCanvas({ product }: { product: Product }) {
   const holder = useRef<HTMLDivElement>(null)
   const [visible, setVisible] = useState(false)
+  const [animated, setAnimated] = useState(false)
 
   useEffect(() => {
     const el = holder.current
     if (!el) return
-    const io = new IntersectionObserver(([e]) => setVisible(e.isIntersecting), { threshold: 0.15 })
+    const io = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) {
+        setVisible(true)
+        // Trigger entrance animation after small delay
+        setTimeout(() => setAnimated(true), 100)
+      } else {
+        setVisible(false)
+        setAnimated(false)
+      }
+    }, { threshold: 0.15 })
     io.observe(el)
     return () => io.disconnect()
   }, [])
@@ -23,9 +32,11 @@ function PanelCanvas({ product }: { product: Product }) {
   return (
     <div ref={holder} className="h-full w-full">
       {visible && (
-        <Suspense fallback={null}>
-          <Furniture3DViewer product={product} finish={FINISH_PRESETS.ivoryLinen} showHotspots={false} />
-        </Suspense>
+        <div className={`h-full w-full transition-all duration-700 ease-out ${animated ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
+          <Suspense fallback={null}>
+            <Furniture3DViewer product={product} finish={FINISH_PRESETS.ivoryLinen} showHotspots={false} />
+          </Suspense>
+        </div>
       )}
       {!visible && (
         <div className="flex h-full items-center justify-center text-oat">
@@ -96,7 +107,7 @@ export default function CollectionShowcase() {
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
                     {/* Left Column - 3D Viewer */}
                     <div className="order-1 lg:order-1 lg:col-span-7">
-                      <div className="h-[440px] cursor-grab active:cursor-grabbing rounded-2xl overflow-hidden relative shadow-sm" style={{ backgroundColor: '#ECE7E1', border: '1px solid rgba(130, 115, 95, 0.2)' }}>
+                      <div className="h-[320px] cursor-grab active:cursor-grabbing rounded-2xl overflow-hidden relative shadow-sm transition-all duration-300 hover:shadow-xl hover:scale-[1.02]" style={{ backgroundColor: '#ECE7E1', border: '1px solid rgba(130, 115, 95, 0.2)' }}>
                         <PanelCanvas product={product} />
                         <span className="absolute right-4 top-4 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] tracking-widest uppercase" style={{ backgroundColor: 'rgba(232, 227, 220, 0.8)', backdropFilter: 'blur(12px) saturate(1.2)', WebkitBackdropFilter: 'blur(12px) saturate(1.2)', border: '1px solid #D5CEC4', color: '#54504A' }}>
                           <Move3d size={12} className="text-brass" /> 360° Drag

@@ -131,21 +131,28 @@ function DimensionHUD({
     <Html
       position={position}
       center
-      distanceFactor={10}
+      distanceFactor={8}
       style={{
         pointerEvents: 'none',
         color: '#B88E52',
-        fontSize: '0.6rem',
+        fontSize: '0.65rem',
         textTransform: 'uppercase',
+        letterSpacing: '0.05em',
       }}
     >
-      <div className="flex items-center gap-1 text-xs">
-        <span>L <b>×</b> W <b>×</b> H</span>
-        <span className="font-medium">{dimensions.width} cm</span>
-        <span className="mx-1">×</span>
-        <span className="font-medium">{dimensions.height} cm</span>
-        <span className="mx-1">×</span>
-        <span className="font-medium">{dimensions.depth} cm</span>
+      <div className="flex flex-col items-center gap-1">
+        <div className="flex items-center gap-2 text-xs font-medium">
+          <span className="text-teak">L</span>
+          <span>{dimensions.width} cm</span>
+        </div>
+        <div className="flex items-center gap-2 text-xs font-medium">
+          <span className="text-teak">W</span>
+          <span>{dimensions.depth} cm</span>
+        </div>
+        <div className="flex items-center gap-2 text-xs font-medium">
+          <span className="text-teak">H</span>
+          <span>{dimensions.height} cm</span>
+        </div>
       </div>
     </Html>
   )
@@ -175,9 +182,9 @@ export default function Furniture3DViewer({
   const explodeT = exploded && canExplode ? 1 : 0
 
   const spots: { id: string; pos: [number, number, number]; label: string; value: string }[] = [
-    { id: 'w', pos: [d.width / 200, d.height / 100 + 0.35, d.depth / 150], label: 'Width', value: `${d.width} cm` },
-    { id: 'h', pos: [-d.width / 160, d.height / 80 + 0.55, 0], label: 'Height', value: `${d.height} cm` },
-    { id: 'd', pos: [0, d.height / 120 + 0.2, d.depth / 110], label: 'Depth', value: `${d.depth} cm` },
+    { id: 'w', pos: [d.width / 220, d.height / 120 + 0.3, d.depth / 160], label: 'Width', value: `${d.width} cm` },
+    { id: 'h', pos: [-d.width / 180, d.height / 90 + 0.5, 0], label: 'Height', value: `${d.height} cm` },
+    { id: 'd', pos: [0, d.height / 130 + 0.15, d.depth / 120], label: 'Depth', value: `${d.depth} cm` },
   ]
 
   const layerPins = (
@@ -272,7 +279,7 @@ export default function Furniture3DViewer({
       <Canvas
         frameloop="demand"
         dpr={[1, 1.75]}
-        camera={{ position: [4.2, 2.2, 5.2], fov: 40 }}
+        camera={{ position: [3.5, 2.0, 4.5], fov: 35 }}
         gl={{ antialias: true, alpha: true }}
         onCreated={({ gl }) => {
           gl.toneMappingExposure = 1.15
@@ -287,8 +294,8 @@ export default function Furniture3DViewer({
           }
         >
           <RoomEnvironment intensity={1.05} lightMode={showControls ? lightMode : undefined} />
-          <Bounds fit clip observe margin={1.15}>
-            <group position={[0, -0.15, 0]}>
+          <Bounds fit clip observe margin={0.8}>
+            <group position={[0, -0.1, 0]}>
               {product.modelUrl ? (
                 <GLBModel url={product.modelUrl} />
               ) : (

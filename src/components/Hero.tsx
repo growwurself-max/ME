@@ -47,7 +47,8 @@ export default function Hero() {
     video.addEventListener('canplay', handleCanPlay)
 
     safetyTimeoutRef.current = setTimeout(() => {
-      if (video.readyState < 2) {
+      // More accurate check: only assume autoplay blocked if video is both not ready AND not progressing
+      if (video.readyState < 2 && (video.paused || video.currentTime === 0)) {
         console.warn('[Hero] Video safety timeout - autoplay likely blocked')
         setVideoError(true)
         setVideoEnded(true)
@@ -55,6 +56,8 @@ export default function Hero() {
         // Ensure scroll is unlocked on timeout
         document.body.style.overflow = ''
         document.documentElement.style.overflow = ''
+      } else {
+        console.log('[Hero] Video is progressing, allowing it to play naturally')
       }
     }, 5000)
 
