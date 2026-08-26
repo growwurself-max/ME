@@ -1,9 +1,8 @@
-import { Suspense, lazy, useState, useEffect, useRef } from 'react'
+import { Suspense, useState, useEffect, useRef } from 'react'
 import { ArrowDown, Sparkles } from 'lucide-react'
 import MagneticButton from './MagneticButton'
 import { LightSimulator } from './three/Furniture3DViewer'
-
-const HeroScene = lazy(() => import('./three/HeroScene'))
+import HeroScene from './three/HeroScene'
 
 export default function Hero() {
   const [lightMode, setLightMode] = useState(0.5)
@@ -94,17 +93,10 @@ export default function Hero() {
           />
         )}
         
-        {/* 3D Showroom Canvas - renders ON TOP of video, below UI */}
-        <Suspense fallback={
-          <div className="absolute inset-0 bg-[#0f1015] flex items-center justify-center z-0">
-            <div className="flex flex-col items-center gap-4">
-              <div className="w-8 h-8 border-2 border-[#b88e52] border-t-transparent rounded-full animate-spin"></div>
-              <p className="text-[#b88e52] text-sm tracking-widest animate-pulse">LOADING SHOWROOM…</p>
-            </div>
-          </div>
-        }>
-          {(videoEnded || videoError) && <HeroScene lightMode={lightMode} />}
-        </Suspense>
+        {/* 3D Showroom Canvas - renders as background layer, always present but fades in */}
+        <div className="absolute inset-0 z-0">
+          <HeroScene lightMode={lightMode} />
+        </div>
 
         {/* UI Overlay Content - Always visible for instant page feel */}
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-between py-8 sm:py-12 md:py-20 text-center z-10 px-4 sm:px-0">

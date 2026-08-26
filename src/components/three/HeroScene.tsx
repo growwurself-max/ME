@@ -6,6 +6,10 @@ import { useSmoothScroll } from '../../lib/smoothScroll'
 import RoomEnvironment from './RoomEnvironment'
 import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing'
 
+// Note: HeroScene uses procedural particles and built-in Environment preset,
+// so no external GLTF models need preloading here. If models are added later,
+// preload them at module scope with: useGLTF.preload('/path/to/model.glb')
+
 function Loader() {
   const { progress } = useProgress()
   return (
@@ -114,16 +118,18 @@ export default function HeroScene({ lightMode = 0.5 }: { lightMode?: number }) {
   useSmoothScroll()
 
   const [is3DActive, setIs3DActive] = useState(false)
-  const [ready, setReady] = useState(false)
   const [hintOpacity, setHintOpacity] = useState(1)
   const [viewport, setViewport] = useState({ isMobile: false, dpr: [1, 1.75] as [number, number], fov: 42 })
+  const { progress } = useProgress()
+  const [canvasReady, setCanvasReady] = useState(false)
 
-  // Fade the 3D scene in after mount instead of a hard cut from the
-  // intro video / hero content.
+  // Fade in canvas when 3D assets are loaded
   useEffect(() => {
-    const id = requestAnimationFrame(() => setReady(true))
-    return () => cancelAnimationFrame(id)
-  }, [])
+    if (progress === 100) {
+      const timer = setTimeout(() => setCanvasReady(true), 100)
+      return () => clearTimeout(timer)
+    }
+  }, [progress])
 
   // Read-only scroll listener purely to fade the "scroll to navigate"
   // hint out as the user starts scrolling. Never writes to scroll position.
@@ -202,8 +208,8 @@ export default function HeroScene({ lightMode = 0.5 }: { lightMode?: number }) {
         gl.toneMapping = THREE.ACESFilmicToneMapping
         gl.setClearColor(new THREE.Color('#0f1015'))
       }}
-      className="fixed inset-0 z-0 w-full h-full transition-opacity duration-[1200ms] ease-out"
-      style={{ opacity: ready ? 1 : 0, touchAction: is3DActive ? 'none' : 'pan-y', backgroundColor: '#0f1015' }}
+      className="fixed inset-0 z-0 w-full h-full transition-opacity duration-700 ease-in-out"
+      style={{ opacity: canvasReady ? 1 : 0, touchAction: is3DActive ? 'none' : 'pan-y' }}
     >
       <Suspense fallback={<Loader />}>
         <RoomEnvironment intensity={1.05} lightMode={lightMode} />
