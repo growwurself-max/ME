@@ -79,7 +79,7 @@ export default function Hero() {
       {/* Scroll track container - provides actual scroll height for 3D scene progress calculation */}
       <div id="scroll-track" className="h-[500vh] w-full pointer-events-none relative" aria-hidden="true" />
       
-      <section id="top" className="relative h-[100svh] min-h-[620px] overflow-hidden fixed inset-0 z-0">
+      <section id="top" className="relative h-[100svh] min-h-[620px] overflow-hidden fixed inset-0 z-0 bg-[#0f1015]">
         {/* Video background - plays as cinematic opening */}
         {!videoError && (
           <video
@@ -95,11 +95,18 @@ export default function Hero() {
         )}
         
         {/* 3D Showroom Canvas - renders ON TOP of video, below UI */}
-        <Suspense fallback={null}>
+        <Suspense fallback={
+          <div className="absolute inset-0 bg-[#0f1015] flex items-center justify-center z-0">
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-8 h-8 border-2 border-[#b88e52] border-t-transparent rounded-full animate-spin"></div>
+              <p className="text-[#b88e52] text-sm tracking-widest animate-pulse">LOADING SHOWROOM…</p>
+            </div>
+          </div>
+        }>
           {(videoEnded || videoError) && <HeroScene lightMode={lightMode} />}
         </Suspense>
 
-        {/* UI Overlay Content */}
+        {/* UI Overlay Content - Always visible for instant page feel */}
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-between py-8 sm:py-12 md:py-20 text-center z-10 px-4 sm:px-0">
           <div className="mt-4 sm:mt-6 md:mt-8 flex-1 flex flex-col items-center justify-center min-h-0">
             <p className="mb-2 sm:mb-3 flex items-center justify-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs md:text-sm tracking-[0.3em] sm:tracking-[0.4em] text-brass uppercase">

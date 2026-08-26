@@ -4,6 +4,7 @@
 
 html {
   scroll-behavior: auto;
+  background: #0f1015;
 }
 
 body {
@@ -13,7 +14,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
   cursor: none;
-  background: transparent;
+  background: #0f1015;
 }
 
 @media (pointer: coarse) {

@@ -1,10 +1,24 @@
 import { Suspense, useMemo, useRef, useEffect, useState } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
-import { Html } from '@react-three/drei'
+import { Html, useProgress } from '@react-three/drei'
 import * as THREE from 'three'
 import { useSmoothScroll } from '../../lib/smoothScroll'
 import RoomEnvironment from './RoomEnvironment'
 import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing'
+
+function Loader() {
+  const { progress } = useProgress()
+  return (
+    <Html center>
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-8 h-8 border-2 border-[#b88e52] border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-[#b88e52] text-sm tracking-widest">
+          {Math.round(progress)}%
+        </p>
+      </div>
+    </Html>
+  )
+}
 
 function Particles({ count = 220 }: { count?: number }) {
   const ref = useRef<THREE.Points>(null)
@@ -186,17 +200,12 @@ export default function HeroScene({ lightMode = 0.5 }: { lightMode?: number }) {
       onCreated={({ gl }) => {
         gl.toneMappingExposure = 1.15
         gl.toneMapping = THREE.ACESFilmicToneMapping
+        gl.setClearColor(new THREE.Color('#0f1015'))
       }}
       className="fixed inset-0 z-0 w-full h-full transition-opacity duration-[1200ms] ease-out"
-      style={{ opacity: ready ? 1 : 0, touchAction: is3DActive ? 'none' : 'pan-y' }}
+      style={{ opacity: ready ? 1 : 0, touchAction: is3DActive ? 'none' : 'pan-y', backgroundColor: '#0f1015' }}
     >
-      <Suspense
-        fallback={
-          <Html center>
-            <div className="text-teak text-sm tracking-widest animate-pulse">LOADING SHOWROOM…</div>
-          </Html>
-        }
-      >
+      <Suspense fallback={<Loader />}>
         <RoomEnvironment intensity={1.05} lightMode={lightMode} />
         <Particles />
         <ScrollRig />

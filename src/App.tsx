@@ -16,10 +16,10 @@ export default function App() {
   const openQuote = () => setQuoteOpen(true)
 
   return (
-    <div className="relative">
+    <div className="relative min-h-screen bg-[#0f1015]">
       <CursorFollower />
       <Navbar />
-      <main>
+      <main className="min-h-screen">
         <Hero />
         <CollectionShowcase />
         <Gallery />
