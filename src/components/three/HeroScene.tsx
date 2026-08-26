@@ -35,6 +35,10 @@ function Particles({ count = 220 }: { count?: number }) {
   )
 }
 
+// Drives the 3D rig purely from scroll position. This is READ-ONLY —
+// it never writes to window.scrollTo / lenis.scrollTo. Actual scroll
+// input is owned entirely by the browser + useSmoothScroll (Lenis),
+// so there is nothing here to fight with.
 function ScrollRig({
   children,
 }: {
@@ -45,17 +49,16 @@ function ScrollRig({
   useFrame((state) => {
     if (!group.current) return
 
-    // Get scroll progress from scroll-track element
     const track = document.getElementById('scroll-track')
     const currentScroll = window.scrollY || document.documentElement.scrollTop
-    const maxScroll = track ? track.scrollHeight - window.innerHeight : Math.max(document.documentElement.scrollHeight - window.innerHeight, 1)
+    const maxScroll = track
+      ? Math.max(track.scrollHeight - window.innerHeight, 1)
+      : Math.max(document.documentElement.scrollHeight - window.innerHeight, 1)
     const p = Math.min(1, currentScroll / maxScroll)
     const heroP = Math.min(1, p * 4)
 
-    // Bezier curve dampening for smooth camera transitions
     const ease = heroP * heroP * (3 - 2 * heroP)
 
-    // Section-based camera targets
     const section = Math.floor(p * 3)
 
     let targetRot = 0
@@ -63,17 +66,14 @@ function ScrollRig({
     let targetScale = 0.85
 
     if (section === 0) {
-      // Hero section - subtle orbit around the piece
       targetRot = THREE.MathUtils.lerp(0, ease * Math.PI, 0.6)
       targetPosY = THREE.MathUtils.lerp(0, ease * 1.6 - 0.1, 0.6)
       targetScale = THREE.MathUtils.lerp(0.85, 0.7, ease)
     } else if (section === 1) {
-      // Collection section - pan view to showcase multiple pieces
       targetRot = THREE.MathUtils.lerp(0, Math.PI * 0.8, 0.7)
       targetPosY = THREE.MathUtils.lerp(0.8, 1.2, 0.7)
       targetScale = THREE.MathUtils.lerp(0.7, 0.55, 0.7)
     } else {
-      // Craftsmanship section - focus on exploded details
       targetRot = THREE.MathUtils.lerp(0, Math.PI * 0.3, 0.8)
       targetPosY = THREE.MathUtils.lerp(1.2, 1.8, 0.8)
       targetScale = THREE.MathUtils.lerp(0.55, 0.45, 0.8)
@@ -83,12 +83,10 @@ function ScrollRig({
     group.current.scale.setScalar(THREE.MathUtils.lerp(group.current.scale.x, targetScale, 0.1))
     group.current.position.y = THREE.MathUtils.lerp(group.current.position.y, targetPosY, 0.1)
 
-    // Dynamic mouse parallax on top of scroll trajectory
     const mouse = state.pointer
     group.current.position.x = THREE.MathUtils.lerp(group.current.position.x, mouse.x * 0.8, 0.05)
     group.current.position.y = THREE.MathUtils.lerp(group.current.position.y, 1.2 + mouse.y * 0.5, 0.05)
 
-    // Camera always looks at center
     group.current.lookAt(0, 0.3, 0)
   })
 
@@ -96,82 +94,101 @@ function ScrollRig({
 }
 
 export default function HeroScene({ lightMode = 0.5 }: { lightMode?: number }) {
-  const { lenis } = useSmoothScroll()
+  // Lenis engine itself lives inside this hook (wheel/touch handling,
+  // its own RAF loop, etc). We just need it mounted — we don't need to
+  // read or drive it directly from here anymore.
+  useSmoothScroll()
+
   const [is3DActive, setIs3DActive] = useState(false)
-  const scrollProgress = useRef(0)
+  const [ready, setReady] = useState(false)
+  const [hintOpacity, setHintOpacity] = useState(1)
+  const [viewport, setViewport] = useState({ isMobile: false, dpr: [1, 1.75] as [number, number], fov: 42 })
 
-  // Wheel fallback for desktop - drives scroll progress directly
+  // Fade the 3D scene in after mount instead of a hard cut from the
+  // intro video / hero content.
   useEffect(() => {
-    const handleWheel = (e: WheelEvent) => {
-      const track = document.getElementById('scroll-track')
-      if (!track) return
-      const maxScroll = track.scrollHeight - window.innerHeight
-      const currentScroll = window.scrollY || document.documentElement.scrollTop
-      const newScroll = Math.min(maxScroll, Math.max(0, currentScroll + e.deltaY))
-      window.scrollTo({ top: newScroll, behavior: 'auto' })
-    }
-
-    window.addEventListener('wheel', handleWheel, { passive: true })
-    return () => window.removeEventListener('wheel', handleWheel)
+    const id = requestAnimationFrame(() => setReady(true))
+    return () => cancelAnimationFrame(id)
   }, [])
 
-  // Sync Lenis scroll to scroll-track element
+  // Read-only scroll listener purely to fade the "scroll to navigate"
+  // hint out as the user starts scrolling. Never writes to scroll position.
   useEffect(() => {
-    const track = document.getElementById('scroll-track')
-    if (!track || !lenis.current) return
-
-    const syncScroll = () => {
-      if (!lenis.current) return
-      const targetScroll = window.scrollY || document.documentElement.scrollTop
-      lenis.current.scrollTo(targetScroll, { immediate: true, lock: false })
+    const onScroll = () => {
+      const y = window.scrollY || document.documentElement.scrollTop
+      setHintOpacity(Math.max(0, 1 - y / 300))
     }
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
 
-    const raf = () => {
-      syncScroll()
-      requestAnimationFrame(raf)
+  // Responsive camera/quality settings. Recomputed on resize so rotating
+  // a phone or resizing a browser window doesn't leave stale values.
+  useEffect(() => {
+    const computeViewport = () => {
+      const isMobile = window.innerWidth < 768
+      setViewport({
+        isMobile,
+        dpr: isMobile ? [1, 1.5] : [1, 1.75],
+        fov: isMobile ? 52 : 42,
+      })
     }
-    raf()
-  }, [lenis])
+    computeViewport()
+    window.addEventListener('resize', computeViewport)
+    return () => window.removeEventListener('resize', computeViewport)
+  }, [])
 
-  // Listen for 3D controls activation/deactivation from touch badge
+  // Handles the touch-drag "3D controls" mode (dispatched elsewhere,
+  // e.g. a touch badge component). Locks page scroll only while active,
+  // with multiple failsafes so it can never stay locked permanently.
   useEffect(() => {
     let isActive = false
 
-    const handleActivate = () => {
-      isActive = true
-      setIs3DActive(true)
-      document.body.style.overflow = 'hidden'
-    }
-
-    const handleDeactivate = () => {
+    const release = () => {
+      if (!isActive) return
       isActive = false
       setIs3DActive(false)
       document.body.style.overflow = ''
     }
 
-    window.addEventListener('3d-controls:activate', handleActivate)
-    window.addEventListener('3d-controls:deactivate', handleDeactivate)
+    const activate = () => {
+      isActive = true
+      setIs3DActive(true)
+      document.body.style.overflow = 'hidden'
+    }
+
+    window.addEventListener('3d-controls:activate', activate)
+    window.addEventListener('3d-controls:deactivate', release)
+    // Failsafes: if the dispatching component misses a deactivate event
+    // (interrupted gesture, touch cancel, etc.), scroll must not stay locked.
+    window.addEventListener('touchend', release)
+    window.addEventListener('touchcancel', release)
+    window.addEventListener('pointerup', release)
 
     return () => {
-      window.removeEventListener('3d-controls:activate', handleActivate)
-      window.removeEventListener('3d-controls:deactivate', handleDeactivate)
+      window.removeEventListener('3d-controls:activate', activate)
+      window.removeEventListener('3d-controls:deactivate', release)
+      window.removeEventListener('touchend', release)
+      window.removeEventListener('touchcancel', release)
+      window.removeEventListener('pointerup', release)
       if (isActive) {
         document.body.style.overflow = ''
       }
     }
   }, [])
 
-return (
+  return (
     <Canvas
-      dpr={[1, 1.75]}
-      camera={{ position: [0, 1.2, 6], fov: 42 }}
-      frameloop="demand"
+      dpr={viewport.dpr}
+      camera={{ position: [0, 1.2, 6], fov: viewport.fov }}
       gl={{ antialias: true, alpha: true }}
       onCreated={({ gl }) => {
         gl.toneMappingExposure = 1.15
         gl.toneMapping = THREE.ACESFilmicToneMapping
       }}
-      className="fixed inset-0 z-0 w-full h-full"
+      className="fixed inset-0 z-0 w-full h-full transition-opacity duration-[1200ms] ease-out"
+      style={{ opacity: ready ? 1 : 0, touchAction: is3DActive ? 'none' : 'pan-y' }}
     >
       <Suspense
         fallback={
@@ -184,10 +201,19 @@ return (
         <Particles />
         <ScrollRig />
         <Html center>
-          <div className="text-teak text-sm tracking-widest">
+          <div
+            className="text-teak text-sm tracking-widest transition-opacity duration-500"
+            style={{ opacity: hintOpacity }}
+          >
             Scroll to navigate the showroom
           </div>
         </Html>
+        {!viewport.isMobile && (
+          <EffectComposer multisampling={0}>
+            <Bloom intensity={0.35} luminanceThreshold={0.6} luminanceSmoothing={0.2} mipmapBlur />
+            <Vignette eskil={false} offset={0.25} darkness={0.6} />
+          </EffectComposer>
+        )}
       </Suspense>
     </Canvas>
   )
