@@ -77,8 +77,13 @@ export default function Hero() {
     <>
       {/* Scroll track container - provides actual scroll height for 3D scene progress calculation */}
       <div id="scroll-track" className="h-[500vh] w-full pointer-events-none relative" aria-hidden="true" />
-      
-      <section id="top" className="relative h-[100svh] min-h-[620px] overflow-hidden fixed inset-0 z-0 bg-[#0f1015]">
+
+      {/* Position is "fixed" only (previously also had "relative" in the same class list,
+          which is contradictory - only one position value can win, and which one depended on
+          Tailwind's internal utility order rather than anything explicit). Fixed is what's
+          intended here: this section stays pinned as a full-viewport background while
+          #scroll-track above provides the actual scrollable height the 3D scene reads from. */}
+      <section id="top" className="h-[100svh] min-h-[620px] overflow-hidden fixed inset-0 z-0 bg-[#0f1015]">
         {/* Video background - plays as cinematic opening */}
         {!videoError && (
           <video
@@ -104,7 +109,16 @@ export default function Hero() {
             <p className="mb-2 sm:mb-3 flex items-center justify-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs md:text-sm tracking-[0.3em] sm:tracking-[0.4em] text-brass uppercase">
               <Sparkles size={12} className="sm:size-14 md:size-[16px]" /> Since Hyderabad · Est. Craftsmanship
             </p>
-            <h1 className="font-display text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl leading-tight tracking-tight mb-2 sm:mb-3 px-2 sm:px-4" style={{ color: '#1F1D1A' }}>
+            {/* Fixed: the first line was using #1F1D1A (a near-black "ink" color meant for
+                LIGHT backgrounds, like the Get a Quote button below) directly on top of the
+                dark hero background/video/3D scene - making it essentially invisible.
+                Replaced with a warm, legible off-white that pairs with the gold gradient on
+                the second line, and added a subtle drop-shadow so it stays readable regardless
+                of what's playing behind it (video footage or the 3D scene). */}
+            <h1
+              className="font-display text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl leading-tight tracking-tight mb-2 sm:mb-3 px-2 sm:px-4 [text-shadow:0_2px_20px_rgba(0,0,0,0.45)]"
+              style={{ color: '#F4EDE2' }}
+            >
               Crafting Comfort
               <br />
               <span className="italic gold-gradient-text">for Every Space</span>
