@@ -1,4 +1,4 @@
-import { useRef, type ReactNode } from 'react'
+import { useRef, type ReactNode, useEffect } from 'react'
 import { RoundedBox, useGLTF } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import type { Group } from 'three'
@@ -7,15 +7,22 @@ import * as THREE from 'three'
 import type { Finish, Product } from '../../data/products'
 
 function useFinishMaterial(finish: Finish) {
-  return useMemo(
+  const mat = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
         color: finish.color,
         roughness: finish.roughness,
         metalness: finish.metalness ?? 0.05,
       }),
-    [finish]
+    [finish.color, finish.roughness, finish.metalness]
   )
+  // Dispose on unmount / finish change to prevent leak
+  useEffect(() => {
+    return () => {
+      mat.dispose()
+    }
+  }, [mat])
+  return mat
 }
 
 const WOOD: Finish = {
@@ -68,6 +75,7 @@ export function ProceduralFurniture({
 }) {
   const mat = useFinishMaterial(finish)
   const wood = useFinishMaterial(WOOD)
+
   const foam = useMemo(
     () => new THREE.MeshStandardMaterial({ color: '#efe7da', roughness: 0.95 }),
     []
@@ -81,6 +89,15 @@ export function ProceduralFurniture({
     []
   )
 
+  // Single dispose effect for static mats
+  useEffect(() => {
+    return () => {
+      foam.dispose()
+      spring.dispose()
+      gold.dispose()
+    }
+  }, [foam, spring, gold])
+
   switch (product.shape) {
     case 'sofa':
       return <SofaMesh mat={mat} wood={wood} gold={gold} foam={foam} explode={explode} />
@@ -89,7 +106,7 @@ export function ProceduralFurniture({
     case 'dining':
       return <DiningMesh mat={mat} wood={wood} />
     case 'mattress':
-      return <MattressMesh mat={mat} foam={foam} spring={spring} explode={explode} />
+      return <MattressMesh mat={mat} foam={foam} spring={spring} wood={wood} explode={explode} />
     default:
       return <TableMesh mat={mat} wood={wood} gold={gold} />
   }
@@ -108,7 +125,6 @@ function SofaMesh({ mat, wood, foam, explode = 0 }: MeshProps) {
   const e = EXPLODE_STEP
   return (
     <group>
-      {/* Solid Teak Frame */}
       <Layer offset={[0, -e * 0.6, 0]} explode={explode}>
         {[
           [-1.45, -0.6], [1.45, -0.6], [-1.45, 0.6], [1.45, 0.6],
@@ -120,7 +136,6 @@ function SofaMesh({ mat, wood, foam, explode = 0 }: MeshProps) {
         <RoundedBox args={[3.15, 0.22, 1.35]} radius={0.06} position={[0, 0.12, 0]} material={wood!} />
       </Layer>
 
-      {/* Pocket-spring / webbing core */}
       <Layer offset={[0, -e * 0.15, 0]} explode={explode}>
         {[-1.05, 0, 1.05].map((x, i) => (
           <mesh key={i} position={[x, 0.34, 0.08]} material={mat}>
@@ -129,7 +144,6 @@ function SofaMesh({ mat, wood, foam, explode = 0 }: MeshProps) {
         ))}
       </Layer>
 
-      {/* High-Density Foam */}
       <Layer offset={[0, e * 0.55, 0]} explode={explode}>
         {[-1.05, 0, 1.05].map((x, i) => (
           <RoundedBox key={i} args={[1.0, 0.28, 1.35]} radius={0.1} position={[x, 0.64, 0.08]} material={foam!} />
@@ -139,7 +153,6 @@ function SofaMesh({ mat, wood, foam, explode = 0 }: MeshProps) {
         ))}
       </Layer>
 
-      {/* Premium Fabric Outer */}
       <Layer offset={[0, e * 1.25, 0]} explode={explode}>
         <RoundedBox args={[3.4, 0.5, 1.6]} radius={0.12} position={[0, 0.25, 0]} material={mat!} />
         <RoundedBox args={[3.4, 1.2, 0.35]} radius={0.14} position={[0, 1.0, -0.62]} material={mat!} />
@@ -225,7 +238,6 @@ function MattressMesh({ mat, foam, spring, wood, explode = 0 }: MeshProps) {
   const e = EXPLODE_STEP
   return (
     <group>
-      {/* Teak slat base frame */}
       <Layer offset={[0, -e, 0]} explode={explode}>
         <RoundedBox args={[2.35, 0.14, 3.15]} radius={0.04} position={[0, 0.07, 0]} material={wood ?? mat} />
         {[0, 1, 2, 3, 4].map((i) => (
@@ -235,17 +247,14 @@ function MattressMesh({ mat, foam, spring, wood, explode = 0 }: MeshProps) {
         ))}
       </Layer>
 
-      {/* Pocket springs */}
       <Layer offset={[0, -e * 0.28, 0]} explode={explode}>
         <group>{springs}</group>
       </Layer>
 
-      {/* High-density foam core */}
       <Layer offset={[0, e * 0.5, 0]} explode={explode}>
         <RoundedBox args={[2.3, 0.42, 3.1]} radius={0.16} position={[0, 0.21, 0]} material={foam!} />
       </Layer>
 
-      {/* Quilted premium fabric top */}
       <Layer offset={[0, e * 1.3, 0]} explode={explode}>
         <RoundedBox args={[2.42, 0.2, 3.2]} radius={0.09} position={[0, 0.32, 0]} material={mat!} />
         <mesh position={[0, 0.43, 0]} material={mat}>
@@ -273,8 +282,56 @@ function TableMesh({ mat, wood, gold }: MeshProps) {
   )
 }
 
-/** Optional GLB loader — used when product.modelUrl is provided. */
+/** Optional GLB loader — DRACO/KTX2 ready, fully disposes on unmount. */
 export function GLBModel({ url }: { url: string }) {
   const gltf = useGLTF(url)
-  return <primitive object={gltf.scene} />
+
+  useEffect(() => {
+    // Pre-warm: textures should have mipmaps enabled (done by KTX2Loader automatically)
+    gltf.scene.traverse((obj: any) => {
+      if (obj.isMesh && obj.material) {
+        const mats = Array.isArray(obj.material) ? obj.material : [obj.material]
+        mats.forEach((m: any) => {
+          if (m.map) {
+            m.map.minFilter = THREE.LinearMipmapLinearFilter
+            m.map.generateMipmaps = true
+            m.map.needsUpdate = true
+          }
+        })
+      }
+    })
+    return () => {
+      // Thorough GC: geometry + material + all texture maps
+      gltf.scene.traverse((obj: any) => {
+        if (obj.isMesh) {
+          obj.geometry?.dispose?.()
+          const mats = Array.isArray(obj.material) ? obj.material : [obj.material]
+          mats.forEach((mat: any) => {
+            // Dispose every texture slot
+            ;['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'aoMap', 'emissiveMap'].forEach((slot) => {
+              if (mat[slot]) {
+                mat[slot].dispose?.()
+                mat[slot] = null
+              }
+            })
+            mat?.dispose?.()
+          })
+        }
+      })
+      // Clear scene to allow GC of group
+      gltf.scene.clear()
+    }
+  }, [gltf.scene])
+
+  // Enable shadows safely
+  useEffect(() => {
+    gltf.scene.traverse((obj: any) => {
+      if (obj.isMesh) {
+        obj.castShadow = true
+        obj.receiveShadow = true
+      }
+    })
+  }, [gltf.scene])
+
+  return <primitive object={gltf.scene} dispose={null} />
 }

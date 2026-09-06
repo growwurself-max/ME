@@ -1,205 +1,146 @@
-import { useRef, useState, useEffect, useMemo } from 'react'
-import { Canvas, useFrame, useThree } from '@react-three/fiber'
+import { useRef, useEffect } from 'react'
+import { Canvas, useFrame } from '@react-three/fiber'
 import { OrbitControls, Environment, ContactShadows, Html } from '@react-three/drei'
 import { GalleryItem } from '../../data/galleryData'
 import * as THREE from 'three'
 import gsap from 'gsap'
+import { usePerformanceTier } from '../../lib/usePerformanceTier'
+import { ErrorBoundary } from '../ErrorBoundary'
+import CanvasErrorFallback from '../CanvasErrorFallback'
+import { ModelSkeleton } from '../ModelSkeleton'
 
 interface Curved3DGalleryProps {
   items: GalleryItem[]
   onItemClick: (item: GalleryItem) => void
 }
 
-function GalleryItem3D({ 
-  item, 
-  index, 
-  total, 
-  radius, 
-  onClick 
-}: { 
+function GalleryItem3D({
+  item,
+  index,
+  total,
+  radius,
+  onClick,
+}: {
   item: GalleryItem
   index: number
   total: number
   radius: number
   onClick: () => void
 }) {
-  const meshRef = useRef<THREE.Mesh>(null)
-  const [hovered, setHovered] = useState(false)
-  const { camera } = useThree()
+  const groupRef = useRef<THREE.Group>(null)
+  const hovered = useRef(false)
 
-  // Calculate position on curve
   const angle = (index / total) * Math.PI * 2
   const x = Math.sin(angle) * radius
   const z = Math.cos(angle) * radius - radius
   const rotationY = -angle
 
   useFrame((state) => {
-    if (meshRef.current) {
-      // Subtle floating animation
-      meshRef.current.position.y = Math.sin(state.clock.elapsedTime + index) * 0.1
+    if (groupRef.current) {
+      groupRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.5 + index) * 0.08
     }
   })
 
-  // Handle hover animation with GSAP - runs after Canvas mounting via ref check
   useEffect(() => {
-    if (meshRef.current) {
-      if (hovered) {
-        gsap.to(meshRef.current.position, {
-          x: x * 1.1,
-          z: (z + radius) * 1.1 - radius,
-          duration: 0.3,
-        })
-        gsap.to(meshRef.current.rotation, {
-          y: rotationY + 0.1,
-          duration: 0.3,
-        })
-      } else {
-        gsap.to(meshRef.current.position, {
-          x,
-          z,
-          duration: 0.3,
-        })
-        gsap.to(meshRef.current.rotation, {
-          y: rotationY,
-          duration: 0.3,
-        })
-      }
-    }
-  }, [hovered, x, z, radius, rotationY])
+    if (!groupRef.current) return
+    // hover handled via pointer events below
+  }, [])
 
   return (
-    <group position={[x, 0, z]}>
-      <mesh
-        ref={meshRef}
-        rotation={[0, rotationY, 0]}
-        onClick={onClick}
-        onPointerOver={() => setHovered(true)}
-        onPointerOut={() => setHovered(false)}
-      >
-        <planeGeometry args={[2, 1.5]} />
-        <meshStandardMaterial 
-          color="#ffffff"
-          roughness={0.4}
-          metalness={0.1}
-        />
-      </mesh>
-      
-      {/* Image overlay */}
-      <Html position={[0, 0, 0.01]} transform>
-        <div 
-          className="w-[200px] h-[150px] rounded-lg overflow-hidden cursor-pointer shadow-xl"
-          style={{ 
-            transform: hovered ? 'scale(1.05)' : 'scale(1)',
-            transition: 'transform 0.3s ease'
-          }}
+    <group ref={groupRef} position={[x, 0, z]}>
+      <group rotation={[0, rotationY, 0]}>
+        <mesh
+          onClick={(e) => { e.stopPropagation(); onClick() }}
+          onPointerOver={() => { hovered.current = true }}
+          onPointerOut={() => { hovered.current = false }}
         >
-<img
-            src={item.imagePath}
-            alt={item.title}
-            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-            loading="lazy"
-            crossOrigin="anonymous"
-          />
-        </div>
-      </Html>
-
-      {/* Title label */}
-      {hovered && (
-        <Html position={[0, -1, 0]} center>
-          <div className="bg-espresso/90 text-white px-3 py-1 rounded-lg text-sm font-medium backdrop-blur-sm">
-            {item.title}
+          <planeGeometry args={[2.05, 1.55]} />
+          {/* Transparent hit area — disposed automatically via fiber */}
+          <meshStandardMaterial color="#ffffff" roughness={0.42} metalness={0.06} transparent opacity={0.01} />
+        </mesh>
+        <Html position={[0, 0, 0.02]} transform center distanceFactor={6} zIndexRange={[10, 0]}>
+          <div
+            className="w-[200px] h-[150px] rounded-[14px] overflow-hidden cursor-pointer shadow-xl border border-white/10"
+          >
+            <img
+              src={item.imagePath}
+              alt={item.title}
+              className="w-full h-full object-cover"
+              loading="lazy"
+              crossOrigin="anonymous"
+              decoding="async"
+            />
           </div>
         </Html>
-      )}
+      </group>
     </group>
   )
 }
 
 function GalleryScene({ items, onItemClick }: { items: GalleryItem[]; onItemClick: (item: GalleryItem) => void }) {
   const groupRef = useRef<THREE.Group>(null)
-  const [rotation, setRotation] = useState(0)
-  const radius = 4
+  const rotation = useRef(0)
+  const targetRot = useRef(0)
+  const perf = usePerformanceTier()
 
-  // Handle scroll/wheel for rotation
   useEffect(() => {
-    const handleWheel = (e: WheelEvent) => {
-      setRotation(prev => prev + e.deltaY * 0.001)
+    const onWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaY) > 2) targetRot.current += e.deltaY * 0.0012
     }
-
-    window.addEventListener('wheel', handleWheel)
-    return () => window.removeEventListener('wheel', handleWheel)
+    const el = document.getElementById('gallery-canvas-wrap')
+    el?.addEventListener('wheel', onWheel, { passive: true })
+    return () => el?.removeEventListener('wheel', onWheel)
   }, [])
 
-  // Touch handling for mobile
-  const [touchStart, setTouchStart] = useState(0)
   useEffect(() => {
-    const handleTouchStart = (e: TouchEvent) => {
-      setTouchStart(e.touches[0].clientX)
+    const el = document.getElementById('gallery-canvas-wrap')
+    if (!el) return
+    let startX = 0
+    let dragging = false
+    const onStart = (e: TouchEvent) => { startX = e.touches[0].clientX; dragging = true }
+    const onMove = (e: TouchEvent) => {
+      if (!dragging) return
+      const dx = e.touches[0].clientX - startX
+      targetRot.current += dx * 0.0022
+      startX = e.touches[0].clientX
     }
-
-    const handleTouchMove = (e: TouchEvent) => {
-      const touchEnd = e.touches[0].clientX
-      const diff = touchStart - touchEnd
-      setRotation(prev => prev + diff * 0.005)
-      setTouchStart(touchEnd)
-    }
-
-    window.addEventListener('touchstart', handleTouchStart)
-    window.addEventListener('touchmove', handleTouchMove)
+    const onEnd = () => { dragging = false }
+    el.addEventListener('touchstart', onStart, { passive: true })
+    el.addEventListener('touchmove', onMove, { passive: true })
+    el.addEventListener('touchend', onEnd)
     return () => {
-      window.removeEventListener('touchstart', handleTouchStart)
-      window.removeEventListener('touchmove', handleTouchMove)
+      el.removeEventListener('touchstart', onStart)
+      el.removeEventListener('touchmove', onMove)
+      el.removeEventListener('touchend', onEnd)
     }
-  }, [touchStart])
+  }, [])
 
-  useFrame(() => {
-    if (groupRef.current) {
-      groupRef.current.rotation.y = rotation
-    }
+  useFrame((_, delta) => {
+    rotation.current = THREE.MathUtils.damp(rotation.current, targetRot.current, 4, delta)
+    if (groupRef.current) groupRef.current.rotation.y = rotation.current
   })
 
   return (
     <>
-      <Environment preset="studio" />
-      <ambientLight intensity={0.6} />
-      <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={1} />
-      <pointLight position={[-10, -10, -10]} intensity={0.4} />
-
-      <ContactShadows
-        position={[0, -2, 0]}
-        opacity={0.4}
-        scale={15}
-        blur={3}
-        far={5}
-        color="#000000"
-      />
+      <Environment preset="studio" environmentIntensity={perf.enableShadows ? 0.9 : 0.6} />
+      <ambientLight intensity={0.55} />
+      <directionalLight position={[6, 8, 4]} intensity={1.15} color="#fffaf2" castShadow={perf.enableShadows} shadow-mapSize={[perf.shadowMapSize, perf.shadowMapSize]} />
+      <directionalLight position={[-4, 3, -5]} intensity={0.55} color="#ffe9c9" />
+      <ContactShadows position={[0, -1.6, 0]} opacity={perf.tier === 'high' ? 0.28 : 0.18} scale={perf.tier === 'high' ? 18 : 14} blur={perf.tier === 'high' ? 3 : 2} far={6} color="#6b5a44" smooth resolution={perf.tier === 'high' ? 512 : 256} />
 
       <group ref={groupRef}>
         {items.map((item, index) => (
-          <GalleryItem3D
-            key={item.id}
-            item={item}
-            index={index}
-            total={items.length}
-            radius={radius}
-            onClick={() => onItemClick(item)}
-          />
+          <GalleryItem3D key={item.id} item={item} index={index} total={items.length} radius={4.2} onClick={() => onItemClick(item)} />
         ))}
       </group>
 
-      <OrbitControls
-        enableZoom={true}
-        enablePan={false}
-        minDistance={5}
-        maxDistance={10}
-        autoRotate={false}
-      />
+      <OrbitControls enableZoom enablePan={false} minDistance={5} maxDistance={10} enableDamping dampingFactor={0.08} autoRotate={false} />
     </>
   )
 }
 
 export default function Curved3DGallery({ items, onItemClick }: Curved3DGalleryProps) {
-  const isMobile = useMemo(() => typeof window !== 'undefined' && window.innerWidth < 768, [])
+  const perf = usePerformanceTier()
 
   if (items.length === 0) {
     return (
@@ -209,20 +150,46 @@ export default function Curved3DGallery({ items, onItemClick }: Curved3DGalleryP
     )
   }
 
+  // Mobile: show 2D grid fallback handled by parent, but 3D gallery also gated
+  // Heavy post-processing already disabled via perf, particle count already 0 on low
+
   return (
-    <div className="relative w-full h-[500px] md:h-[600px] rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(to bottom right, #E0DAD2, #D4CDC3)' }}>
-      <Canvas
-        camera={{ position: [0, 0, 8], fov: isMobile ? 60 : 50 }}
-        frameloop="demand"
-        gl={{ antialias: true, alpha: true }}
-      >
-        <GalleryScene items={items} onItemClick={onItemClick} />
-      </Canvas>
-      
-      {/* Instructions overlay */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full text-sm pointer-events-none" style={{ backgroundColor: 'rgba(232, 227, 220, 0.8)', backdropFilter: 'blur(12px) saturate(1.2)', WebkitBackdropFilter: 'blur(12px) saturate(1.2)', border: '1px solid #D5CEC4', color: '#1F1D1A' }}>
-        Scroll or drag to rotate • Click to inspect
+    <div
+      id="gallery-canvas-wrap"
+      className="relative w-full h-[500px] md:h-[600px] rounded-2xl overflow-hidden border border-white/10"
+      style={{ background: 'radial-gradient(120% 120% at 50% 0%, #EEE8DE 0%, #E0DAD2 45%, #D4CDC3 100%)' }}
+    >
+      <ErrorBoundary fallback={<CanvasErrorFallback />}>
+        <Canvas
+          camera={{ position: [0, 0.6, 8], fov: perf.isMobile ? 60 : 50 }}
+          frameloop="demand"
+          dpr={perf.dpr}
+          gl={{ antialias: perf.tier !== 'low', alpha: true, powerPreference: 'high-performance', stencil: false }}
+          performance={{ min: 0.5 }}
+          resize={{ scroll: false, debounce: 0 }}
+          onCreated={({ gl }) => {
+            gl.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+            gl.outputColorSpace = THREE.SRGBColorSpace
+          }}
+          style={{ width: '100%', height: '100%' }}
+        >
+          <SuspenseWrapper items={items} onItemClick={onItemClick} />
+        </Canvas>
+      </ErrorBoundary>
+
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 glass-pill px-4 py-2 rounded-full text-xs tracking-wide pointer-events-none" style={{ color: '#1F1D1A' }}>
+        {perf.tier === 'low' ? 'Tap to view · 3D paused on low power' : 'Scroll or drag to rotate · Click to inspect'}
       </div>
     </div>
+  )
+}
+
+// Wrap Suspense outside to avoid conditional hooks
+import { Suspense } from 'react'
+function SuspenseWrapper({ items, onItemClick }: Curved3DGalleryProps) {
+  return (
+    <Suspense fallback={<ModelSkeleton label="Loading gallery…" />}>
+      <GalleryScene items={items} onItemClick={onItemClick} />
+    </Suspense>
   )
 }

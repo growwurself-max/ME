@@ -4,73 +4,88 @@ import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 
 gsap.registerPlugin(ScrollTrigger)
-
-// Ensure ScrollTrigger uses window as scroller (not a proxy)
 ScrollTrigger.defaults({ scroller: window })
 
-// Singleton Lenis instance to ensure only one exists across the app
 let lenisInstance: Lenis | null = null
 let refCount = 0
 
-export function useSmoothScroll() {
+/**
+ * useSmoothScroll — butter-smooth momentum via Lenis + GSAP ScrollTrigger sync
+ * - Singleton: safe to call in multiple components
+ * - Respects prefers-reduced-motion (falls back to native)
+ * - Syncs Lenis → ScrollTrigger every tick
+ * 
+ * Usage:
+ *   useSmoothScroll() // in App.tsx once
+ */
+export function useSmoothScroll(opts?: { duration?: number; lerp?: number }) {
   const lenisRef = useRef<Lenis | null>(null)
 
   useEffect(() => {
-    // Increment reference count
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
     refCount++
-
-    // Create Lenis instance only if it doesn't exist
     if (!lenisInstance) {
       lenisInstance = new Lenis({
-        duration: 1.15,
-        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+        duration: opts?.duration ?? 1.15,
+        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), // expo out
         smoothWheel: true,
-        // Use native window scroll (not a virtual container)
-        wrapper: window,
-        content: document.documentElement,
+        syncTouch: false, // keep native touch momentum
+        touchMultiplier: 1.6,
+        gestureOrientation: 'vertical',
+        wrapper: window as any,
+        content: document.documentElement as any,
       })
 
+      // Lenis → GSAP sync
       lenisInstance.on('scroll', ScrollTrigger.update)
 
       const raf = (time: number) => {
         lenisInstance?.raf(time * 1000)
       }
-
       gsap.ticker.add(raf)
-
-      // Start Lenis explicitly
+      ;(gsap.ticker as any).lagSmoothing(0)
       lenisInstance.start()
 
-      // Refresh ScrollTrigger after a brief delay to ensure layout is settled
-      const refreshTimer = setTimeout(() => {
-        ScrollTrigger.refresh()
-      }, 100)
-
-      // Store cleanup function on the instance for later
+      const refreshTimer = setTimeout(() => ScrollTrigger.refresh(), 120)
       ;(lenisInstance as any)._cleanup = () => {
         gsap.ticker.remove(raf)
         clearTimeout(refreshTimer)
       }
+
+      // Refresh on font load / resize
+      const onResize = () => ScrollTrigger.refresh()
+      window.addEventListener('resize', onResize)
+      ;(lenisInstance as any)._onResize = onResize
     }
 
     lenisRef.current = lenisInstance
 
     return () => {
-      // Decrement reference count
       refCount--
-
-      // Only destroy when no components are using it
       if (refCount === 0 && lenisInstance) {
-        ;(lenisInstance as any)._cleanup?.()
+        const inst: any = lenisInstance
+        inst._cleanup?.()
+        if (inst._onResize) window.removeEventListener('resize', inst._onResize)
         lenisInstance.destroy()
         lenisInstance = null
       }
-
       lenisRef.current = null
     }
-  }, [])
+  }, [opts?.duration])
 
   return { lenis: lenisRef, gsap, ScrollTrigger }
+}
+
+/**
+ * Helper: scroll to anchor with Lenis (falls back to native)
+ */
+export function scrollTo(target: string | number, offset = 0) {
+  if (lenisInstance) {
+    lenisInstance.scrollTo(target as any, { offset, duration: 1.2 })
+  } else {
+    if (typeof target === 'number') window.scrollTo({ top: target, behavior: 'smooth' })
+    else document.querySelector(target)?.scrollIntoView({ behavior: 'smooth' })
+  }
 }
 
 export { gsap, ScrollTrigger }

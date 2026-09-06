@@ -1,5 +1,6 @@
-import { Suspense, useState, useEffect, useRef } from 'react'
+import { Suspense, useState, useEffect, useRef, useLayoutEffect } from 'react'
 import { ArrowDown, Sparkles } from 'lucide-react'
+import gsap from 'gsap'
 import MagneticButton from './MagneticButton'
 import { LightSimulator } from './three/Furniture3DViewer'
 import HeroScene from './three/HeroScene'
@@ -7,87 +8,92 @@ import HeroScene from './three/HeroScene'
 export default function Hero() {
   const [lightMode, setLightMode] = useState(0.5)
   const [videoError, setVideoError] = useState(false)
-  const [videoEnded, setVideoEnded] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
   const safetyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Reveal refs
+  const heroRef = useRef<HTMLDivElement>(null)
+  const canvasWrapRef = useRef<HTMLDivElement>(null)
+
+  // Cinematic staggered reveal — runs after preloader:done or immediately if already done
+  useLayoutEffect(() => {
+    const ctx = gsap.context(() => {
+      // initial states
+      gsap.set('.hero-eyebrow', { yPercent: 110, opacity: 0 })
+      gsap.set('.hero-title span', { yPercent: 110, opacity: 0 })
+      gsap.set('.hero-desc', { yPercent: 20, opacity: 0 })
+      gsap.set('.hero-ctas > *', { yPercent: 30, opacity: 0 })
+      gsap.set(canvasWrapRef.current, { opacity: 0, scale: 1.04, filter: 'blur(10px)' })
+
+      const tl = gsap.timeline({ paused: true, defaults: { ease: 'power3.out' } })
+      tl.to('.hero-eyebrow', { yPercent: 0, opacity: 1, duration: 0.8 }, 0)
+        .to('.hero-title span', { yPercent: 0, opacity: 1, duration: 0.9, stagger: 0.12 }, 0.15)
+        .to(canvasWrapRef.current, { opacity: 1, scale: 1, filter: 'blur(0px)', duration: 1.1, ease: 'power2.out' }, 0.2)
+        .to('.hero-desc', { yPercent: 0, opacity: 1, duration: 0.7 }, 0.55)
+        .to('.hero-ctas > *', { yPercent: 0, opacity: 1, duration: 0.6, stagger: 0.1 }, 0.68)
+
+      const play = () => tl.play(0)
+
+      // If preloader already done (no loading), play immediately — else wait for event
+      const handler = () => play()
+      window.addEventListener('preloader:done', handler, { once: true })
+
+      // Fallback: if no preloader event within 1.6s (e.g. direct reload with cache), auto-play
+      const fallback = setTimeout(() => {
+        if (tl.progress() === 0) play()
+      }, 1600)
+
+      return () => {
+        window.removeEventListener('preloader:done', handler)
+        clearTimeout(fallback)
+      }
+    }, heroRef)
+
+    return () => ctx.revert()
+  }, [])
 
   useEffect(() => {
     const video = videoRef.current
     if (!video) return
-
     const handleEnded = () => {
-      console.log('[Hero] Video ended')
+      video.style.transition = 'opacity 0.8s ease'
+      video.style.opacity = '0'
       video.style.pointerEvents = 'none'
-      setVideoEnded(true)
-      // Ensure scroll is unlocked when video ends
       document.body.style.overflow = ''
       document.documentElement.style.overflow = ''
     }
-
-    const handleError = (e: Event) => {
-      console.error('[Hero] Video error:', e)
+    const handleError = () => {
       setVideoError(true)
-      setVideoEnded(true)
       video.style.pointerEvents = 'none'
-      // Ensure scroll is unlocked on error
       document.body.style.overflow = ''
       document.documentElement.style.overflow = ''
-      if (safetyTimeoutRef.current) {
-        clearTimeout(safetyTimeoutRef.current)
-        safetyTimeoutRef.current = null
-      }
+      if (safetyTimeoutRef.current) { clearTimeout(safetyTimeoutRef.current); safetyTimeoutRef.current = null }
     }
-
-    const handleCanPlay = () => {
-      console.log('[Hero] Video can play')
-    }
-
     video.addEventListener('ended', handleEnded)
     video.addEventListener('error', handleError)
-    video.addEventListener('canplay', handleCanPlay)
-
     safetyTimeoutRef.current = setTimeout(() => {
-      // More accurate check: only assume autoplay blocked if video is both not ready AND not progressing
       if (video.readyState < 2 && (video.paused || video.currentTime === 0)) {
-        console.warn('[Hero] Video safety timeout - autoplay likely blocked')
         setVideoError(true)
-        setVideoEnded(true)
         video.style.pointerEvents = 'none'
-        // Ensure scroll is unlocked on timeout
         document.body.style.overflow = ''
         document.documentElement.style.overflow = ''
-      } else {
-        console.log('[Hero] Video is progressing, allowing it to play naturally')
       }
     }, 5000)
-
     return () => {
       video.removeEventListener('ended', handleEnded)
       video.removeEventListener('error', handleError)
-      video.removeEventListener('canplay', handleCanPlay)
       video.style.pointerEvents = 'none'
-      // Ensure scroll is unlocked on cleanup
       document.body.style.overflow = ''
       document.documentElement.style.overflow = ''
-      if (safetyTimeoutRef.current) {
-        clearTimeout(safetyTimeoutRef.current)
-        safetyTimeoutRef.current = null
-      }
+      if (safetyTimeoutRef.current) { clearTimeout(safetyTimeoutRef.current); safetyTimeoutRef.current = null }
     }
   }, [])
 
   return (
     <>
-      {/* Scroll track container - provides actual scroll height for 3D scene progress calculation */}
       <div id="scroll-track" className="h-[500vh] w-full pointer-events-none relative" aria-hidden="true" />
 
-      {/* Position is "fixed" only (previously also had "relative" in the same class list,
-          which is contradictory - only one position value can win, and which one depended on
-          Tailwind's internal utility order rather than anything explicit). Fixed is what's
-          intended here: this section stays pinned as a full-viewport background while
-          #scroll-track above provides the actual scrollable height the 3D scene reads from. */}
-      <section id="top" className="h-[100svh] min-h-[620px] overflow-hidden fixed inset-0 z-0 bg-[#0f1015]">
-        {/* Video background - plays as cinematic opening */}
+      <section id="top" ref={heroRef} className="h-[100svh] min-h-[620px] overflow-hidden fixed inset-0 z-0 bg-[#0f1015]">
         {!videoError && (
           <video
             ref={videoRef}
@@ -100,40 +106,31 @@ export default function Hero() {
             aria-hidden="true"
           />
         )}
-        
-        {/* 3D Showroom Canvas - renders as background layer, always present but fades in */}
-        <div className="absolute inset-0 z-0">
+
+        <div ref={canvasWrapRef} className="absolute inset-0 z-0">
           <HeroScene lightMode={lightMode} />
         </div>
 
-        {/* UI Overlay Content - Always visible for instant page feel */}
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-between py-8 sm:py-12 md:py-20 text-center z-10 px-4 sm:px-0">
           <div className="mt-4 sm:mt-6 md:mt-8 flex-1 flex flex-col items-center justify-center min-h-0">
-            <p className="mb-2 sm:mb-3 flex items-center justify-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs md:text-sm tracking-[0.3em] sm:tracking-[0.4em] text-brass uppercase">
-              <Sparkles size={12} className="sm:size-14 md:size-[16px]" /> Since Hyderabad · Est. Craftsmanship
+            <p className="hero-eyebrow mb-2 sm:mb-3 flex items-center justify-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs md:text-sm tracking-[0.3em] sm:tracking-[0.4em] text-brass uppercase overflow-hidden">
+              <span className="inline-flex items-center gap-2"><Sparkles size={12} className="sm:size-14 md:size-[16px]" /> Since Hyderabad · Est. Craftsmanship</span>
             </p>
-            {/* Fixed: the first line was using #1F1D1A (a near-black "ink" color meant for
-                LIGHT backgrounds, like the Get a Quote button below) directly on top of the
-                dark hero background/video/3D scene - making it essentially invisible.
-                Replaced with a warm, legible off-white that pairs with the gold gradient on
-                the second line, and added a subtle drop-shadow so it stays readable regardless
-                of what's playing behind it (video footage or the 3D scene). */}
             <h1
-              className="font-display text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl leading-tight tracking-tight mb-2 sm:mb-3 px-2 sm:px-4 [text-shadow:0_2px_20px_rgba(0,0,0,0.45)]"
+              className="hero-title font-display text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl leading-tight tracking-tight mb-2 sm:mb-3 px-2 sm:px-4 [text-shadow:0_2px_20px_rgba(0,0,0,0.45)] overflow-hidden"
               style={{ color: '#F4EDE2' }}
             >
-              Crafting Comfort
+              <span className="inline-block overflow-hidden"><span className="inline-block">Crafting Comfort</span></span>
               <br />
-              <span className="italic gold-gradient-text">for Every Space</span>
+              <span className="inline-block overflow-hidden"><span className="inline-block italic gold-gradient-text">for Every Space</span></span>
             </h1>
           </div>
 
           <div className="pointer-events-auto flex flex-col items-center gap-3 sm:gap-4 md:gap-6 w-full max-w-md px-3 sm:px-4 pb-16 sm:pb-20 md:pb-12">
-            <p className="text-xs sm:text-sm md:text-base leading-relaxed px-1 sm:px-2" style={{ color: '#54504A' }}>
-              Luxury sofas, cots, dining sets & mattresses — custom-built with premium hardwood and
-              factory-direct pricing. Scroll to enter the 3D showroom.
+            <p className="hero-desc text-xs sm:text-sm md:text-base leading-relaxed px-1 sm:px-2 overflow-hidden" style={{ color: 'rgba(244,237,226,0.72)' }}>
+              <span className="inline-block">Luxury sofas, cots, dining sets & mattresses — custom-built with premium hardwood and factory-direct pricing.</span>
             </p>
-            <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 md:gap-4 w-full">
+            <div className="hero-ctas flex flex-col sm:flex-row gap-2.5 sm:gap-3 md:gap-4 w-full overflow-hidden">
               <MagneticButton
                 href="#collection"
                 label="EXPLORE"
@@ -148,7 +145,7 @@ export default function Hero() {
                 href="#quote"
                 label="QUOTE"
                 className="rounded-full border backdrop-blur-md px-5 sm:px-6 md:px-8 py-2.5 sm:py-3 md:py-3.5 font-medium transition-colors w-full sm:w-auto text-xs sm:text-sm md:text-base"
-                style={{ backgroundColor: 'rgba(255, 255, 255, 0.6)', borderColor: 'rgba(130, 115, 95, 0.25)', color: '#1F1D1A' }}
+                style={{ backgroundColor: 'rgba(255, 255, 255, 0.65)', borderColor: 'rgba(130, 115, 95, 0.25)', color: '#1F1D1A' }}
                 onMouseEnter={(e) => (e.currentTarget as HTMLElement).style.borderColor = '#8C6D48'}
                 onMouseLeave={(e) => (e.currentTarget as HTMLElement).style.borderColor = 'rgba(130, 115, 95, 0.25)'}
               >
@@ -158,11 +155,10 @@ export default function Hero() {
           </div>
         </div>
 
-        <div className="absolute bottom-4 sm:bottom-5 left-1/2 z-20 -translate-x-1/2 animate-bounce text-slate/70 hidden sm:block">
+        <div className="absolute bottom-4 sm:bottom-5 left-1/2 z-20 -translate-x-1/2 animate-bounce text-white/60 hidden sm:block">
           <ArrowDown size={16} className="sm:size-[18px]" />
         </div>
 
-        {/* Floating day-to-night lighting simulator over the showroom canvas */}
         <div className="absolute bottom-4 sm:bottom-6 md:bottom-8 left-3 sm:left-4 md:left-6 z-20 hidden sm:block">
           <LightSimulator mode={lightMode} onChange={setLightMode} />
         </div>

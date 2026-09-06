@@ -1,12 +1,14 @@
-import { Suspense, useState, useRef, useEffect } from 'react'
+import { Suspense, useState, useEffect } from 'react'
 import { Canvas } from '@react-three/fiber'
-import { Html, OrbitControls, Center, Bounds } from '@react-three/drei'
+import { Html, OrbitControls, Bounds } from '@react-three/drei'
 import { Layers, RotateCcw, Sun } from 'lucide-react'
 import * as THREE from 'three'
 import RoomEnvironment from './RoomEnvironment'
 import { GLBModel, ProceduralFurniture } from './ProceduralFurniture'
 import type { Finish, Product } from '../../data/products'
-import { FINISH_PRESETS } from '../../data/products'
+import { usePerformanceTier } from '../../lib/usePerformanceTier'
+import { ModelSkeleton } from '../ModelSkeleton'
+import { ErrorBoundary } from '../ErrorBoundary'
 
 const LIGHT_LABELS = ['Morning', 'Afternoon', 'Evening'] as const
 
@@ -22,11 +24,11 @@ function LayerPin({
   return (
     <Html position={position} center distanceFactor={8} zIndexRange={[20, 0]}>
       <div className="pointer-events-none flex items-center gap-2 whitespace-nowrap">
-        <span className="h-2 w-2 rounded-full bg-brass shadow-[0_0_10px_rgba(184,142,82,0.7)]" />
-        <span className="glass-pill rounded-full px-3 py-1 text-[11px] text-obsidian shadow-glass">
-          <b className="text-teak">{label}</b>
-          <span className="mx-1 text-oat">·</span>
-          <span className="text-slate">{value}</span>
+        <span className="h-2 w-2 rounded-full bg-[#B88E52] shadow-[0_0_10px_rgba(184,142,82,0.7)]" />
+        <span className="glass-pill rounded-full px-3 py-1 text-[11px] text-[#1F1D1A] shadow-glass">
+          <b className="text-[#A3704C]">{label}</b>
+          <span className="mx-1 text-[#E0DAD2]">·</span>
+          <span style={{ color: '#52525B' }}>{value}</span>
         </span>
       </div>
     </Html>
@@ -56,11 +58,11 @@ function Hotspot({
         className="relative flex items-center justify-center outline-none"
         aria-label={`${label}: ${value}`}
       >
-        <span className="absolute inline-flex h-5 w-5 rounded-full bg-brass/40 animate-ping" />
-        <span className="relative inline-flex h-4 w-4 rounded-full border-2 border-white bg-brass shadow-lg" />
+        <span className="absolute inline-flex h-5 w-5 rounded-full bg-[#B88E52]/40 animate-ping" />
+        <span className="relative inline-flex h-4 w-4 rounded-full border-2 border-white bg-[#B88E52] shadow-lg" />
         {open && (
-          <span className="absolute top-6 whitespace-nowrap glass-pill px-3 py-1.5 text-xs text-obsidian shadow-xl">
-            <b className="text-teak">{label}</b> · {value}
+          <span className="absolute top-6 whitespace-nowrap glass-pill px-3 py-1.5 text-xs text-[#1F1D1A] shadow-xl">
+            <b className="text-[#A3704C]">{label}</b> · {value}
           </span>
         )}
       </button>
@@ -79,8 +81,8 @@ export function LightSimulator({
 }) {
   const idx = Math.round(mode * 2)
   return (
-    <div className={`pointer-events-auto flex items-center gap-3 rounded-full ${compact ? 'px-3 py-1.5' : 'px-4 py-2'}`} style={{ backgroundColor: 'rgba(232, 227, 220, 0.8)', backdropFilter: 'blur(12px) saturate(1.2)', WebkitBackdropFilter: 'blur(12px) saturate(1.2)', border: '1px solid #D5CEC4' }}>
-      <Sun size={compact ? 13 : 15} className="text-brass shrink-0" />
+    <div className={`pointer-events-auto flex items-center gap-3 rounded-full ${compact ? 'px-3 py-1.5' : 'px-4 py-2'}`} style={{ backgroundColor: 'rgba(232, 227, 220, 0.82)', backdropFilter: 'blur(12px) saturate(1.2)', WebkitBackdropFilter: 'blur(12px) saturate(1.2)', border: '1px solid #D5CEC4' }}>
+      <Sun size={compact ? 13 : 15} className="text-[#B88E52] shrink-0" />
       <input
         type="range"
         min={0}
@@ -92,69 +94,6 @@ export function LightSimulator({
       />
       <span className="text-[11px] tracking-wide min-w-[62px]" style={{ color: '#54504A' }}>{LIGHT_LABELS[idx]}</span>
     </div>
-  )
-}
-
-function MaterialSwatch({
-  finish,
-  index,
-  total,
-  onSelect,
-}: {
-  finish: Finish
-  index: number
-  total: number
-  onSelect: (finish: Finish) => void
-}) {
-  const isSelected = finish === undefined
-  const primary = finish?.color ?? '#8c6d48'
-
-  return (
-    <button
-      onClick={() => onSelect(finish)}
-      className={`glass-pill pointer-events-auto flex items-center gap-2 rounded-full px-4 py-2 text-xs font-medium tracking-wide transition-colors ${
-        isSelected ? 'text-alabaster' : 'text-obsidian hover:text-teak'
-      }`} style={{ background: isSelected ? primary : undefined, color: isSelected ? '#FFFFFF' : '#1F1D1A' }}>
-        {finish?.name ?? 'Default'}
-      </button>
-  )
-}
-
-function DimensionHUD({
-  dimensions,
-  position,
-}: {
-  dimensions: { width: number; height: number; depth: number }
-  position: [number, number, number]
-}) {
-  return (
-    <Html
-      position={position}
-      center
-      distanceFactor={8}
-      style={{
-        pointerEvents: 'none',
-        color: '#B88E52',
-        fontSize: '0.65rem',
-        textTransform: 'uppercase',
-        letterSpacing: '0.05em',
-      }}
-    >
-      <div className="flex flex-col items-center gap-1">
-        <div className="flex items-center gap-2 text-xs font-medium">
-          <span className="text-teak">L</span>
-          <span>{dimensions.width} cm</span>
-        </div>
-        <div className="flex items-center gap-2 text-xs font-medium">
-          <span className="text-teak">W</span>
-          <span>{dimensions.depth} cm</span>
-        </div>
-        <div className="flex items-center gap-2 text-xs font-medium">
-          <span className="text-teak">H</span>
-          <span>{dimensions.height} cm</span>
-        </div>
-      </div>
-    </Html>
   )
 }
 
@@ -204,56 +143,35 @@ export default function Furniture3DViewer({
   )
 
   const [selectedFinish, setSelectedFinish] = useState<Finish | undefined>(undefined)
-
-  const materialSwatches = Object.entries(FINISH_PRESETS).map(([key, f], i) => (
-    <MaterialSwatch
-      key={key}
-      finish={f}
-      index={i}
-      total={Object.keys(FINISH_PRESETS).length}
-      onSelect={() => setSelectedFinish(f)}
-    />
-  ))
-
   const [is3DActive, setIs3DActive] = useState(false)
+  const perf = usePerformanceTier()
+  // Spec: Math.min(window.devicePixelRatio, 2) — dynamic resize without stretching
+  const dpr = perf.dpr
 
-  // Listen for 3D controls activation/deactivation from touch badge
   useEffect(() => {
     let isActive = false
-
-    const handleActivate = () => {
-      isActive = true
-      setIs3DActive(true)
-      document.body.style.overflow = 'hidden'
-    }
-
-    const handleDeactivate = () => {
-      isActive = false
-      setIs3DActive(false)
-      document.body.style.overflow = ''
-    }
-
+    const handleActivate = () => { isActive = true; setIs3DActive(true); document.body.style.overflow = 'hidden' }
+    const handleDeactivate = () => { isActive = false; setIs3DActive(false); document.body.style.overflow = '' }
     window.addEventListener('3d-controls:activate', handleActivate)
     window.addEventListener('3d-controls:deactivate', handleDeactivate)
-
     return () => {
       window.removeEventListener('3d-controls:activate', handleActivate)
       window.removeEventListener('3d-controls:deactivate', handleDeactivate)
-      if (isActive) {
-        document.body.style.overflow = ''
-      }
+      if (isActive) document.body.style.overflow = ''
     }
   }, [])
 
+  const activeFinish = selectedFinish ?? finish
+
   return (
-    <div className={`relative ${className}`}>
+    <div className={`relative w-full h-full ${className}`} style={{ minHeight: 280 }}>
       {showControls && (
         <div className="absolute right-3 top-3 z-30 flex flex-col items-end gap-2 sm:right-4 sm:top-4">
           {canExplode && (
             <button
               onClick={() => setExploded((v) => !v)}
               className={`glass-pill pointer-events-auto flex items-center gap-2 rounded-full px-4 py-2 text-xs font-medium tracking-wide transition-colors ${
-                exploded ? 'text-alabaster' : 'text-obsidian hover:text-teak'
+                exploded ? 'text-[#FAF8F5]' : 'text-[#1F1D1A] hover:text-[#A3704C]'
               }`}
               style={exploded ? { background: '#B88E52' } : undefined}
             >
@@ -263,7 +181,7 @@ export default function Furniture3DViewer({
           <button
             onClick={() => setLightMode(0.5)}
             title="Reset lighting"
-            className="glass-pill pointer-events-auto hidden items-center gap-2 rounded-full px-3 py-2 text-xs text-obsidian transition-colors hover:text-teak sm:flex"
+            className="glass-pill pointer-events-auto hidden items-center gap-2 rounded-full px-3 py-2 text-xs text-[#1F1D1A] transition-colors hover:text-[#A3704C] sm:flex"
             style={{ display: lightMode === 0.5 ? 'none' : undefined }}
           >
             <RotateCcw size={13} /> Reset light
@@ -276,30 +194,34 @@ export default function Furniture3DViewer({
         </div>
       )}
 
-      <Canvas
-        frameloop="demand"
-        dpr={[1, 1.75]}
-        camera={{ position: [3.5, 2.0, 4.5], fov: 35 }}
-        gl={{ antialias: true, alpha: true }}
-        onCreated={({ gl }) => {
-          gl.toneMappingExposure = 1.15
-        }}
-        style={{ background: 'transparent' }}
-      >
-        <Suspense
-          fallback={
-            <Html center>
-              <div className="text-teak text-xs tracking-widest animate-pulse">LOADING…</div>
-            </Html>
-          }
+      <ErrorBoundary>
+        <Canvas
+          frameloop="demand"
+          dpr={dpr}
+          camera={{ position: [3.5, 2.0, 4.5], fov: 35 }}
+          gl={{ antialias: perf.tier !== 'low', alpha: true, powerPreference: 'high-performance', stencil: false }}
+          onCreated={({ gl }) => {
+            gl.toneMappingExposure = 1.15
+            gl.toneMapping = THREE.ACESFilmicToneMapping
+            gl.outputColorSpace = THREE.SRGBColorSpace
+            gl.shadowMap.enabled = perf.enableShadows
+            gl.shadowMap.type = THREE.PCFSoftShadowMap
+            // Clamp pixel ratio per spec — prevents stretching and overdraw
+            gl.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+          }}
+          style={{ background: 'transparent', width: '100%', height: '100%' }}
+          resize={{ scroll: false, debounce: 0 }}
+          performance={{ min: 0.5 }}
         >
+          <Suspense fallback={<ModelSkeleton label="Loading model…" />}>
+          
           <RoomEnvironment intensity={1.05} lightMode={showControls ? lightMode : undefined} />
           <Bounds fit clip observe margin={0.8}>
             <group position={[0, -0.1, 0]}>
               {product.modelUrl ? (
                 <GLBModel url={product.modelUrl} />
               ) : (
-                <ProceduralFurniture product={product} finish={selectedFinish ?? finish} explode={explodeT} />
+                <ProceduralFurniture product={product} finish={activeFinish} explode={explodeT} />
               )}
             </group>
           </Bounds>
@@ -331,50 +253,14 @@ export default function Furniture3DViewer({
             minPolarAngle={Math.PI / 6}
             maxPolarAngle={Math.PI / 2.05}
             autoRotate={interactive}
-            autoRotateSpeed={1.1}
+            autoRotateSpeed={0.9}
             enableDamping
             dampingFactor={0.08}
             target={[0, explodeT > 0 ? 0.6 : 0.3, 0]}
           />
-
-          {/* Dimension HUD Overlay */}
-          <DimensionHUD dimensions={d} position={[0, -0.15, 0]} />
-
-          {/* Material Swatches Panel */}
-          {selectedFinish && (
-            <Html position={[0, -2.5, 0]} center distanceFactor={5}>
-              <div className="pointer-events-auto flex items-center gap-3">
-                <span className="text-xs text-teak uppercase">Swatch Selection</span>
-                {materialSwatches}
-              </div>
-            </Html>
-          )}
-
-          {/* Live Fabric Reflection */}
-          <mesh
-            position={[0.5, 0.5, -0.5]}
-            rotation={[-Math.PI / 2, 0, 0]}
-            receiveShadow
-          >
-            <planeGeometry args={[3, 2]}
-            />
-            <meshStandardMaterial
-              color={selectedFinish?.color ?? finish.color}
-              roughness={selectedFinish?.roughness ?? finish.roughness}
-              metalness={0.1}
-            />
-          </mesh>
-        </Suspense>
-      </Canvas>
-
-      {/* 3D Controls Toggle - shown only when is3DActive */}
-      {is3DActive && (
-        <div className="absolute top-4 right-4 z-[200] p-2 rounded-full bg-white/90 hover:bg-white text-espresso transition-colors shadow-lg">
-          <button onClick={() => setIs3DActive(false)} aria-label="Lock page scroll">
-            <RotateCcw size={24} />
-          </button>
-        </div>
-      )}
+          </Suspense>
+        </Canvas>
+      </ErrorBoundary>
     </div>
   )
 }

@@ -23,14 +23,15 @@ body {
   }
 }
 
-@media (pointer: coarse) {
-  body {
-    cursor: auto;
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
   }
 }
 
 ::selection {
-  background: #b88e52;
+  background: #B88E52;
   color: #faf8f5;
 }
 
@@ -38,53 +39,77 @@ body {
   width: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #f2ede4;
+  background: #F2EDE4;
 }
 ::-webkit-scrollbar-thumb {
   background: rgba(184, 142, 82, 0.5);
   border-radius: 3px;
 }
 
+/* ——— Premium Glassmorphic ——— */
 .glass {
-  background: rgba(237, 232, 225, 0.85);
-  backdrop-filter: blur(16px) saturate(1.4);
-  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  background: rgba(237, 232, 225, 0.84);
+  backdrop-filter: blur(16px) saturate(1.45);
+  -webkit-backdrop-filter: blur(16px) saturate(1.45);
   border-bottom: 1px solid rgba(130, 115, 95, 0.15);
+  box-shadow: 0 8px 32px rgba(15, 16, 21, 0.06);
 }
-
+.glass-nav {
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(18px) saturate(1.45);
+  -webkit-backdrop-filter: blur(18px) saturate(1.45);
+}
+.glass-nav-scrolled {
+  background: rgba(237, 232, 225, 0.92);
+  backdrop-filter: blur(18px) saturate(1.45);
+  -webkit-backdrop-filter: blur(18px) saturate(1.45);
+}
+.glass-dark {
+  background: rgba(15, 16, 21, 0.56);
+  backdrop-filter: blur(18px) saturate(1.3);
+  -webkit-backdrop-filter: blur(18px) saturate(1.3);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.22);
+}
 .glass-pill {
-  background: rgba(237, 232, 225, 0.8);
-  backdrop-filter: blur(14px) saturate(1.3);
-  -webkit-backdrop-filter: blur(14px) saturate(1.3);
-  border: 1px solid rgba(130, 115, 95, 0.25);
-  box-shadow: 0 8px 32px rgba(24, 24, 27, 0.07);
+  background: rgba(237, 232, 225, 0.82);
+  backdrop-filter: blur(14px) saturate(1.32);
+  -webkit-backdrop-filter: blur(14px) saturate(1.32);
+  border: 1px solid rgba(130, 115, 95, 0.22);
+  box-shadow: 0 8px 32px rgba(24, 24, 27, 0.07), inset 0 1px 0 rgba(255,255,255,0.5);
+}
+.glass-pill:hover {
+  border-color: rgba(184, 142, 82, 0.35);
 }
 
-.brass-gradient-text {
-  background: linear-gradient(120deg, #d9b98c 0%, #b88e52 45%, #a3704c 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
+/* ——— Typography hierarchy ——— */
+.brass-gradient-text,
 .gold-gradient-text {
-  background: linear-gradient(120deg, #d9b98c 0%, #b88e52 45%, #a3704c 100%);
+  background: linear-gradient(120deg, #d9b98c 0%, #B88E52 45%, #A3704C 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
+.text-balance {
+  text-wrap: balance;
+}
+.display-xl {
+  font-family: "Playfair Display", serif;
+  letter-spacing: -0.02em;
+  line-height: 0.95;
+}
 
+/* ——— Cards ——— */
 .card-lux {
   background: #EDE8E1;
-  border: 1px solid rgba(130, 115, 95, 0.15);
+  border: 1px solid rgba(130, 115, 95, 0.14);
   box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.05);
+  transition: box-shadow 0.4s ease, border-color 0.4s ease, transform 0.4s ease;
 }
-
-/* Ensure card-lux works in all contexts */
-.card-lux * {
-  color: inherit;
+.card-lux:hover {
+  box-shadow: 0 28px 56px -18px rgba(0, 0, 0, 0.10);
+  border-color: rgba(184, 142, 82, 0.22);
 }
-
 .frosted-glass {
   background: rgba(232, 227, 220, 0.8);
   backdrop-filter: blur(12px) saturate(1.2);
@@ -92,6 +117,7 @@ body {
   border: 1px solid #D5CEC4;
 }
 
+/* ——— Reveal ——— */
 .reveal-word {
   display: inline-block;
   overflow: hidden;
@@ -100,4 +126,44 @@ body {
 .reveal-word > span {
   display: inline-block;
   transform: translateY(110%);
+}
+
+/* ——— Loading shimmer ——— */
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+.shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.28), transparent);
+  animation: shimmer 1.4s infinite;
+}
+
+/* ——— Focus ring ——— */
+:focus-visible {
+  outline: 2px solid #B88E52;
+  outline-offset: 2px;
+}
+
+/* ——— HUD border glow (GlassCard) ——— */
+.glass-glow {
+  --mx: 50%;
+  --my: 50%;
+}
+
+/* ——— Lenis ——— */
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+.lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
+.lenis.lenis-stopped { overflow: hidden; }
+
+/* ——— Canvas crisp ——— */
+canvas {
+  display: block;
 }
