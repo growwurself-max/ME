@@ -1,5 +1,5 @@
 import { useState, useRef, useLayoutEffect } from 'react'
-import { ArrowDown, Sparkles, SkipForward } from 'lucide-react'
+import { ArrowDown, Sparkles } from 'lucide-react'
 import { gsap, ScrollTrigger } from '../lib/smoothScroll'
 import MagneticButton from './MagneticButton'
 import { LightSimulator } from './three/Furniture3DViewer'
@@ -7,16 +7,11 @@ import HeroScene from './three/HeroScene'
 
 export default function Hero() {
   const [lightMode, setLightMode] = useState(0.5)
-  const [videoError, setVideoError] = useState(false)
-  const [videoBuffering, setVideoBuffering] = useState(false)
-  const [videoDone, setVideoDone] = useState(false)
-  const [videoMounted, setVideoMounted] = useState(true)
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const scrollTrackRef = useRef<HTMLDivElement>(null)
 
-  // Reveal refs
+  // Refs
   const heroRef = useRef<HTMLDivElement>(null)
   const canvasWrapRef = useRef<HTMLDivElement>(null)
+  const scrollTrackRef = useRef<HTMLDivElement>(null)
 
   // Cinematic staggered reveal — runs after preloader:done or immediately if already done
   useLayoutEffect(() => {
@@ -57,7 +52,6 @@ export default function Hero() {
 
   // Fade out + slide up hero typography as the user scrolls, so the product
   // cards from the collection walkthrough never collide with the headline.
-  // Hero copy clears over the first 0→0.2 of the hero scroll range.
   useLayoutEffect(() => {
     const track = scrollTrackRef.current
     const copy = heroRef.current?.querySelector('.hero-copy')
@@ -82,84 +76,11 @@ export default function Hero() {
     }
   }, [])
 
-  const releaseScroll = () => {
-    document.body.style.overflow = ''
-    document.documentElement.style.overflow = ''
-  }
-
-  // Dismiss the overlay ONLY on 'ended' OR an explicit "Skip Intro" tap —
-  // never on a timer, so the full ~10s intro always plays through.
-  const finishIntro = () => {
-    setVideoDone(true)
-    releaseScroll()
-    // Fully unmount only after the 1000ms fade completes.
-    setTimeout(() => setVideoMounted(false), 1000)
-  }
-
-  const handleEnded = () => finishIntro()
-
-  const handleSkip = () => {
-    const video = videoRef.current
-    if (video) {
-      video.pause()
-      video.currentTime = video.duration || video.currentTime
-    }
-    finishIntro()
-  }
-
-  const handleWaiting = () => setVideoBuffering(true)
-  const handleStalled = () => setVideoBuffering(true)
-  const handleCanPlay = () => setVideoBuffering(false)
-
-  const handleError = () => {
-    setVideoError(true)
-    setVideoDone(true)
-    setVideoMounted(false)
-    releaseScroll()
-  }
-
   return (
     <>
       <div id="scroll-track" ref={scrollTrackRef} className="h-[500vh] w-full pointer-events-none relative" aria-hidden="true" />
 
       <section id="top" ref={heroRef} className="h-[100svh] min-h-[620px] overflow-hidden fixed inset-0 z-0 bg-[#FAF8F5]">
-        {!videoError && videoMounted && (
-          <video
-            ref={videoRef}
-            src="/intro.mp4"
-            autoPlay
-            muted
-            playsInline
-            preload="auto"
-            poster="/intro_poster.jpg"
-            onEnded={handleEnded}
-            onWaiting={handleWaiting}
-            onStalled={handleStalled}
-            onCanPlay={handleCanPlay}
-            onError={handleError}
-            className={`absolute inset-0 object-cover w-full h-full z-[-1] transition-opacity duration-1000 ease-in-out ${videoDone ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
-            aria-hidden="true"
-          />
-        )}
-
-        {!videoError && !videoDone && (
-          <button
-            onClick={handleSkip}
-            className="absolute top-24 right-4 sm:top-6 sm:right-6 z-30 flex items-center gap-1.5 rounded-full border border-white/40 bg-white/70 px-4 py-2 text-[11px] tracking-[0.18em] uppercase text-[#7A5C32] backdrop-blur-md transition-colors hover:bg-[#7A5C32] hover:text-white"
-          >
-            <SkipForward size={13} /> Skip Intro
-          </button>
-        )}
-
-        {!videoError && !videoDone && videoBuffering && (
-          <div className="pointer-events-none absolute inset-0 z-[-1] flex items-center justify-center">
-            <div className="flex flex-col items-center gap-3">
-              <span className="h-8 w-8 animate-spin rounded-full border-2 border-[#B88E52]/30 border-t-[#B88E52]" />
-              <span className="text-[11px] tracking-[0.24em] text-[#8C6D3F] uppercase">Preparing showroom</span>
-            </div>
-          </div>
-        )}
-
         <div ref={canvasWrapRef} className="absolute inset-0 z-0">
           <HeroScene lightMode={lightMode} />
         </div>
