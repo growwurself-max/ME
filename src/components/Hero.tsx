@@ -8,7 +8,9 @@ import HeroScene from './three/HeroScene'
 export default function Hero() {
   const [lightMode, setLightMode] = useState(0.5)
   const [videoError, setVideoError] = useState(false)
+  const [videoBuffering, setVideoBuffering] = useState(false)
   const [videoDone, setVideoDone] = useState(false)
+  const [videoMounted, setVideoMounted] = useState(true)
   const videoRef = useRef<HTMLVideoElement>(null)
   const safetyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -53,40 +55,52 @@ export default function Hero() {
     return () => ctx.revert()
   }, [])
 
-  useEffect(() => {
-    const video = videoRef.current
-    if (!video) return
-    const dissolve = () => {
-      setVideoDone(true)
-      document.body.style.overflow = ''
-      document.documentElement.style.overflow = ''
+  const releaseScroll = () => {
+    document.body.style.overflow = ''
+    document.documentElement.style.overflow = ''
+  }
+
+  const clearSafety = () => {
+    if (safetyTimeoutRef.current) {
+      clearTimeout(safetyTimeoutRef.current)
+      safetyTimeoutRef.current = null
     }
-    const handleEnded = () => {
-      setVideoDone(true)
-      document.body.style.overflow = ''
-      document.documentElement.style.overflow = ''
-    }
-    const handleError = () => {
-      setVideoError(true)
-      setVideoDone(true)
-      document.body.style.overflow = ''
-      document.documentElement.style.overflow = ''
-      if (safetyTimeoutRef.current) { clearTimeout(safetyTimeoutRef.current); safetyTimeoutRef.current = null }
-    }
-    video.addEventListener('ended', handleEnded)
-    video.addEventListener('error', handleError)
+  }
+
+  // Dismiss overlay only once playback has actually begun — never on mount.
+  const handlePlay = () => {
+    setVideoBuffering(false)
+    clearSafety()
     safetyTimeoutRef.current = setTimeout(() => {
-      // After 5s, dissolve overlay to reveal the light showroom
-      dissolve()
+      // Graceful safety-dismiss: playlist never 'ended' but frames have played.
+      setVideoDone(true)
+      releaseScroll()
+      setTimeout(() => setVideoMounted(false), 750)
     }, 5000)
-    return () => {
-      video.removeEventListener('ended', handleEnded)
-      video.removeEventListener('error', handleError)
-      video.style.pointerEvents = 'none'
-      document.body.style.overflow = ''
-      document.documentElement.style.overflow = ''
-      if (safetyTimeoutRef.current) { clearTimeout(safetyTimeoutRef.current); safetyTimeoutRef.current = null }
-    }
+  }
+
+  const handleEnded = () => {
+    clearSafety()
+    setVideoDone(true)
+    releaseScroll()
+    // Fully unmount the overlay only after the 700ms fade completes.
+    setTimeout(() => setVideoMounted(false), 750)
+  }
+
+  const handleWaiting = () => setVideoBuffering(true)
+  const handleStalled = () => setVideoBuffering(true)
+  const handleCanPlay = () => setVideoBuffering(false)
+
+  const handleError = () => {
+    clearSafety()
+    setVideoError(true)
+    setVideoDone(true)
+    setVideoMounted(false)
+    releaseScroll()
+  }
+
+  useEffect(() => {
+    return () => clearSafety()
   }, [])
 
   return (
@@ -94,7 +108,7 @@ export default function Hero() {
       <div id="scroll-track" className="h-[500vh] w-full pointer-events-none relative" aria-hidden="true" />
 
       <section id="top" ref={heroRef} className="h-[100svh] min-h-[620px] overflow-hidden fixed inset-0 z-0 bg-[#FAF8F5]">
-        {!videoError && (
+        {!videoError && videoMounted && (
           <video
             ref={videoRef}
             src="/intro.mp4"
@@ -102,9 +116,25 @@ export default function Hero() {
             muted
             playsInline
             preload="auto"
+            poster="/intro_poster.jpg"
+            onPlay={handlePlay}
+            onEnded={handleEnded}
+            onWaiting={handleWaiting}
+            onStalled={handleStalled}
+            onCanPlay={handleCanPlay}
+            onError={handleError}
             className={`absolute inset-0 object-cover w-full h-full z-[-1] transition-opacity duration-700 ease-in-out ${videoDone ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
             aria-hidden="true"
           />
+        )}
+
+        {!videoError && !videoDone && videoBuffering && (
+          <div className="pointer-events-none absolute inset-0 z-[-1] flex items-center justify-center">
+            <div className="flex flex-col items-center gap-3">
+              <span className="h-8 w-8 animate-spin rounded-full border-2 border-[#B88E52]/30 border-t-[#B88E52]" />
+              <span className="text-[11px] tracking-[0.24em] text-[#8C6D3F] uppercase">Preparing showroom</span>
+            </div>
+          </div>
         )}
 
         <div ref={canvasWrapRef} className="absolute inset-0 z-0">
