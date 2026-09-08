@@ -85,6 +85,22 @@ export default function CollectionShowcase() {
           },
         })
       })
+      // Fade each product card in only once its panel enters the walkthrough,
+      // so cards never collide with the hero typography that scrolled away.
+      gsap.utils.toArray<HTMLElement>('.panel-card').forEach((card) => {
+        gsap.fromTo(card, { opacity: 0, y: 44 }, {
+          opacity: 1,
+          y: 0,
+          ease: 'power2.out',
+          scrollTrigger: {
+            trigger: card,
+            containerAnimation: horizTween,
+            start: 'left 92%',
+            end: 'left 45%',
+            scrub: true,
+          },
+        })
+      })
     })
     return () => ctx.revert()
   }, [])
@@ -103,7 +119,7 @@ export default function CollectionShowcase() {
                   <span className="font-display text-[38vh] leading-none whitespace-nowrap">{`0${i + 1}`}</span>
                 </div>
 
-                <div className="relative z-10 w-full max-w-6xl mx-auto">
+                <div className="panel-card relative z-10 w-full max-w-6xl mx-auto">
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
                     {/* Left Column - 3D Viewer */}
                     <div className="order-1 lg:order-1 lg:col-span-7">
@@ -125,15 +141,15 @@ export default function CollectionShowcase() {
                       {/* Specs Grid */}
                       <div className="mt-5 space-y-2">
                         <div className="flex items-center justify-between py-2 border-b" style={{ borderColor: 'rgba(130, 115, 95, 0.15)' }}>
-                          <span className="text-sm" style={{ color: '#54504A' }}>Dimensions</span>
+                          <span className="text-sm font-semibold" style={{ color: '#1C1B1F' }}>Dimensions</span>
                           <span className="text-sm font-medium" style={{ color: '#1F1D1A' }}>{product.dimensions.width} × {product.dimensions.depth} × {product.dimensions.height} cm</span>
                         </div>
                         <div className="flex items-center justify-between py-2 border-b" style={{ borderColor: 'rgba(130, 115, 95, 0.15)' }}>
-                          <span className="text-sm" style={{ color: '#54504A' }}>Warranty</span>
+                          <span className="text-sm font-semibold" style={{ color: '#1C1B1F' }}>Warranty</span>
                           <span className="text-sm font-medium" style={{ color: '#1F1D1A' }}>{product.warranty}</span>
                         </div>
                         <div className="flex items-center justify-between py-2 border-b" style={{ borderColor: 'rgba(130, 115, 95, 0.15)' }}>
-                          <span className="text-sm" style={{ color: '#54504A' }}>Price</span>
+                          <span className="text-sm font-semibold" style={{ color: '#1C1B1F' }}>Price</span>
                           <span className="text-sm font-medium" style={{ color: '#1F1D1A' }}>{product.priceRange}</span>
                         </div>
                       </div>

@@ -1,6 +1,6 @@
-import { Suspense, useState, useEffect, useRef, useLayoutEffect } from 'react'
-import { ArrowDown, Sparkles } from 'lucide-react'
-import gsap from 'gsap'
+import { useState, useRef, useLayoutEffect } from 'react'
+import { ArrowDown, Sparkles, SkipForward } from 'lucide-react'
+import { gsap, ScrollTrigger } from '../lib/smoothScroll'
 import MagneticButton from './MagneticButton'
 import { LightSimulator } from './three/Furniture3DViewer'
 import HeroScene from './three/HeroScene'
@@ -12,7 +12,7 @@ export default function Hero() {
   const [videoDone, setVideoDone] = useState(false)
   const [videoMounted, setVideoMounted] = useState(true)
   const videoRef = useRef<HTMLVideoElement>(null)
-  const safetyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const scrollTrackRef = useRef<HTMLDivElement>(null)
 
   // Reveal refs
   const heroRef = useRef<HTMLDivElement>(null)
@@ -55,36 +55,56 @@ export default function Hero() {
     return () => ctx.revert()
   }, [])
 
+  // Fade out + slide up hero typography as the user scrolls, so the product
+  // cards from the collection walkthrough never collide with the headline.
+  // Hero copy clears over the first 0→0.2 of the hero scroll range.
+  useLayoutEffect(() => {
+    const track = scrollTrackRef.current
+    const copy = heroRef.current?.querySelector('.hero-copy')
+    if (!track || !copy) return
+
+    const tween = gsap.to(copy, {
+      opacity: 0,
+      yPercent: -80,
+      filter: 'blur(10px)',
+      ease: 'none',
+      scrollTrigger: {
+        trigger: track,
+        start: 'top top',
+        end: '+=22vh',
+        scrub: 0.4,
+      },
+    })
+
+    return () => {
+      tween.scrollTrigger?.kill()
+      tween.kill()
+    }
+  }, [])
+
   const releaseScroll = () => {
     document.body.style.overflow = ''
     document.documentElement.style.overflow = ''
   }
 
-  const clearSafety = () => {
-    if (safetyTimeoutRef.current) {
-      clearTimeout(safetyTimeoutRef.current)
-      safetyTimeoutRef.current = null
-    }
-  }
-
-  // Dismiss overlay only once playback has actually begun — never on mount.
-  const handlePlay = () => {
-    setVideoBuffering(false)
-    clearSafety()
-    safetyTimeoutRef.current = setTimeout(() => {
-      // Graceful safety-dismiss: playlist never 'ended' but frames have played.
-      setVideoDone(true)
-      releaseScroll()
-      setTimeout(() => setVideoMounted(false), 750)
-    }, 5000)
-  }
-
-  const handleEnded = () => {
-    clearSafety()
+  // Dismiss the overlay ONLY on 'ended' OR an explicit "Skip Intro" tap —
+  // never on a timer, so the full ~10s intro always plays through.
+  const finishIntro = () => {
     setVideoDone(true)
     releaseScroll()
-    // Fully unmount the overlay only after the 700ms fade completes.
-    setTimeout(() => setVideoMounted(false), 750)
+    // Fully unmount only after the 1000ms fade completes.
+    setTimeout(() => setVideoMounted(false), 1000)
+  }
+
+  const handleEnded = () => finishIntro()
+
+  const handleSkip = () => {
+    const video = videoRef.current
+    if (video) {
+      video.pause()
+      video.currentTime = video.duration || video.currentTime
+    }
+    finishIntro()
   }
 
   const handleWaiting = () => setVideoBuffering(true)
@@ -92,20 +112,15 @@ export default function Hero() {
   const handleCanPlay = () => setVideoBuffering(false)
 
   const handleError = () => {
-    clearSafety()
     setVideoError(true)
     setVideoDone(true)
     setVideoMounted(false)
     releaseScroll()
   }
 
-  useEffect(() => {
-    return () => clearSafety()
-  }, [])
-
   return (
     <>
-      <div id="scroll-track" className="h-[500vh] w-full pointer-events-none relative" aria-hidden="true" />
+      <div id="scroll-track" ref={scrollTrackRef} className="h-[500vh] w-full pointer-events-none relative" aria-hidden="true" />
 
       <section id="top" ref={heroRef} className="h-[100svh] min-h-[620px] overflow-hidden fixed inset-0 z-0 bg-[#FAF8F5]">
         {!videoError && videoMounted && (
@@ -117,15 +132,23 @@ export default function Hero() {
             playsInline
             preload="auto"
             poster="/intro_poster.jpg"
-            onPlay={handlePlay}
             onEnded={handleEnded}
             onWaiting={handleWaiting}
             onStalled={handleStalled}
             onCanPlay={handleCanPlay}
             onError={handleError}
-            className={`absolute inset-0 object-cover w-full h-full z-[-1] transition-opacity duration-700 ease-in-out ${videoDone ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+            className={`absolute inset-0 object-cover w-full h-full z-[-1] transition-opacity duration-1000 ease-in-out ${videoDone ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
             aria-hidden="true"
           />
+        )}
+
+        {!videoError && !videoDone && (
+          <button
+            onClick={handleSkip}
+            className="absolute top-24 right-4 sm:top-6 sm:right-6 z-30 flex items-center gap-1.5 rounded-full border border-white/40 bg-white/70 px-4 py-2 text-[11px] tracking-[0.18em] uppercase text-[#7A5C32] backdrop-blur-md transition-colors hover:bg-[#7A5C32] hover:text-white"
+          >
+            <SkipForward size={13} /> Skip Intro
+          </button>
         )}
 
         {!videoError && !videoDone && videoBuffering && (
@@ -141,23 +164,23 @@ export default function Hero() {
           <HeroScene lightMode={lightMode} />
         </div>
 
-        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-between py-8 sm:py-12 md:py-20 text-center z-10 px-4 sm:px-0">
+        <div className="hero-copy pointer-events-none absolute inset-0 flex flex-col items-center justify-between py-8 sm:py-12 md:py-20 text-center z-10 px-4 sm:px-0">
           <div className="mt-4 sm:mt-6 md:mt-8 flex-1 flex flex-col items-center justify-center min-h-0">
-            <p className="hero-eyebrow mb-2 sm:mb-3 flex items-center justify-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs md:text-sm tracking-[0.3em] sm:tracking-[0.4em] text-brass uppercase overflow-hidden">
+            <p className="hero-eyebrow mb-2 sm:mb-3 flex items-center justify-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs md:text-sm font-semibold uppercase overflow-hidden" style={{ color: '#7A5C32', letterSpacing: '0.25em' }}>
               <span className="inline-flex items-center gap-2"><Sparkles size={12} className="sm:size-14 md:size-[16px]" /> Since Hyderabad · Est. Craftsmanship</span>
             </p>
             <h1
-              className="hero-title font-display text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl leading-tight tracking-tight mb-2 sm:mb-3 px-2 sm:px-4 [text-shadow:0_2px_20px_rgba(0,0,0,0.45)] overflow-hidden"
-              style={{ color: '#F4EDE2' }}
+              className="hero-title font-display text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl leading-[1.05] tracking-tight mb-2 sm:mb-3 px-2 sm:px-4 font-semibold overflow-hidden"
+              style={{ color: '#141312' }}
             >
               <span className="inline-block overflow-hidden"><span className="inline-block">Crafting Comfort</span></span>
               <br />
-              <span className="inline-block overflow-hidden"><span className="inline-block italic gold-gradient-text">for Every Space</span></span>
+              <span className="inline-block overflow-hidden"><span className="inline-block italic" style={{ color: '#141312' }}>for Every Space</span></span>
             </h1>
           </div>
 
           <div className="pointer-events-auto flex flex-col items-center gap-3 sm:gap-4 md:gap-6 w-full max-w-md px-3 sm:px-4 pb-16 sm:pb-20 md:pb-12">
-            <p className="hero-desc text-xs sm:text-sm md:text-base leading-relaxed px-1 sm:px-2 overflow-hidden" style={{ color: 'rgba(244,237,226,0.72)' }}>
+            <p className="hero-desc text-xs sm:text-sm md:text-base font-medium leading-relaxed px-1 sm:px-2 overflow-hidden" style={{ color: '#3D3B38' }}>
               <span className="inline-block">Luxury sofas, cots, dining sets & mattresses — custom-built with premium hardwood and factory-direct pricing.</span>
             </p>
             <div className="hero-ctas flex flex-col sm:flex-row gap-2.5 sm:gap-3 md:gap-4 w-full overflow-hidden">
@@ -185,7 +208,7 @@ export default function Hero() {
           </div>
         </div>
 
-        <div className="absolute bottom-4 sm:bottom-5 left-1/2 z-20 -translate-x-1/2 animate-bounce text-white/60 hidden sm:block">
+        <div className="absolute bottom-4 sm:bottom-5 left-1/2 z-20 -translate-x-1/2 animate-bounce text-[#7A5C32]/70 hidden sm:block">
           <ArrowDown size={16} className="sm:size-[18px]" />
         </div>
 
