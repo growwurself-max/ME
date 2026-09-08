@@ -111,7 +111,7 @@ export default function HeroScene({
     gl.toneMapping = THREE.ACESFilmicToneMapping
     gl.toneMappingExposure = 1.18
     gl.outputColorSpace = THREE.SRGBColorSpace
-    gl.setClearColor(new THREE.Color('#0f1015'))
+    gl.setClearColor(new THREE.Color('#FAF8F5'))
     gl.shadowMap.enabled = perf.enableShadows
     gl.shadowMap.type = THREE.PCFSoftShadowMap
     // Spec: Math.min(window.devicePixelRatio, 2)
@@ -166,8 +166,8 @@ export default function HeroScene({
           <CameraRig perf={perf} intensity={1} />
           <Html center>
             <div
-              className="text-[#C9A86A] text-[11px] tracking-[0.24em] uppercase whitespace-nowrap transition-opacity duration-500 select-none px-4 py-1.5 rounded-full"
-              style={{ opacity: hintOpacity, background: 'rgba(15,16,21,0.42)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.08)' }}
+              className="text-[#9B7A4F] text-[11px] tracking-[0.24em] uppercase whitespace-nowrap transition-opacity duration-500 select-none px-4 py-1.5 rounded-full"
+              style={{ opacity: hintOpacity, background: 'rgba(255,255,255,0.72)', backdropFilter: 'blur(10px)', border: '1px solid rgba(234,229,220,0.7)', color: '#8C6D3F' }}
             >
               Scroll to navigate · Move cursor to explore
             </div>

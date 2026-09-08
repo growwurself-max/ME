@@ -100,7 +100,7 @@ function SunRig({ mode, perf }: { mode: number; perf: PerformanceConfig }) {
       {/* Cool/Warm Rim — accent back-light */}
       <directionalLight ref={rim} position={[-4, 3, -6]} intensity={0.9} color="#ffe9c9" />
       <directionalLight ref={fill} position={[-5, 3, 4]} intensity={0.5} color="#f5efeb" />
-      <hemisphereLight args={['#ffedcd', '#0f1015', 0.35]} />
+      <hemisphereLight args={['#ffedcd', '#EDE8E1', 0.35]} />
     </>
   )
 }
@@ -133,7 +133,7 @@ export default function EnvironmentRig({
             <directionalLight position={[-4.8, 4.2, -5.5]} intensity={0.95 * envIntensity} color={perf.tier === 'high' ? '#cfe1ff' : '#ffe9c9'} />
           )}
           <directionalLight position={[-5, 3, 4]} intensity={0.52 * envIntensity} color="#f5efeb" />
-          <hemisphereLight args={['#ffedcd', '#0f1015', 0.28 * envIntensity]} />
+          <hemisphereLight args={['#ffedcd', '#EDE8E1', 0.28 * envIntensity]} />
           {!perf.enableShadows && (
             <spotLight position={[6, 8, 4]} angle={0.38} penumbra={0.9} intensity={1.0 * envIntensity} color="#ffe9c9" />
           )}

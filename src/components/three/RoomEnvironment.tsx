@@ -83,7 +83,7 @@ export function SunRig({ mode }: { mode: number }) {
       {/* Soft fill to lift shadows */}
       <directionalLight ref={fill} position={[-5, 3, 4]} intensity={0.55} color="#f5efeb" />
       {/* Subtle hemisphere to simulate bounce */}
-      <hemisphereLight args={['#ffedcd', '#0f1015', 0.35]} />
+      <hemisphereLight args={['#ffedcd', '#EDE8E1', 0.35]} />
     </>
   )
 }
@@ -111,7 +111,7 @@ export default function RoomEnvironment({
           {/* Rim light */}
           <directionalLight position={[-4.5, 4, -5]} intensity={0.85 * intensity} color="#ffe9c9" />
           <directionalLight position={[-5, 3, 4]} intensity={0.5 * intensity} color="#f5efeb" />
-          <hemisphereLight args={['#ffedcd', '#111214', 0.28 * intensity]} />
+          <hemisphereLight args={['#ffedcd', '#EDE8E1', 0.28 * intensity]} />
           <spotLight
             position={[6, 8, 4]}
             angle={0.38}

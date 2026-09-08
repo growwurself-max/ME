@@ -8,6 +8,7 @@ import HeroScene from './three/HeroScene'
 export default function Hero() {
   const [lightMode, setLightMode] = useState(0.5)
   const [videoError, setVideoError] = useState(false)
+  const [videoDone, setVideoDone] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
   const safetyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -55,16 +56,19 @@ export default function Hero() {
   useEffect(() => {
     const video = videoRef.current
     if (!video) return
+    const dissolve = () => {
+      setVideoDone(true)
+      document.body.style.overflow = ''
+      document.documentElement.style.overflow = ''
+    }
     const handleEnded = () => {
-      video.style.transition = 'opacity 0.8s ease'
-      video.style.opacity = '0'
-      video.style.pointerEvents = 'none'
+      setVideoDone(true)
       document.body.style.overflow = ''
       document.documentElement.style.overflow = ''
     }
     const handleError = () => {
       setVideoError(true)
-      video.style.pointerEvents = 'none'
+      setVideoDone(true)
       document.body.style.overflow = ''
       document.documentElement.style.overflow = ''
       if (safetyTimeoutRef.current) { clearTimeout(safetyTimeoutRef.current); safetyTimeoutRef.current = null }
@@ -72,12 +76,8 @@ export default function Hero() {
     video.addEventListener('ended', handleEnded)
     video.addEventListener('error', handleError)
     safetyTimeoutRef.current = setTimeout(() => {
-      if (video.readyState < 2 && (video.paused || video.currentTime === 0)) {
-        setVideoError(true)
-        video.style.pointerEvents = 'none'
-        document.body.style.overflow = ''
-        document.documentElement.style.overflow = ''
-      }
+      // After 5s, dissolve overlay to reveal the light showroom
+      dissolve()
     }, 5000)
     return () => {
       video.removeEventListener('ended', handleEnded)
@@ -93,7 +93,7 @@ export default function Hero() {
     <>
       <div id="scroll-track" className="h-[500vh] w-full pointer-events-none relative" aria-hidden="true" />
 
-      <section id="top" ref={heroRef} className="h-[100svh] min-h-[620px] overflow-hidden fixed inset-0 z-0 bg-[#0f1015]">
+      <section id="top" ref={heroRef} className="h-[100svh] min-h-[620px] overflow-hidden fixed inset-0 z-0 bg-[#FAF8F5]">
         {!videoError && (
           <video
             ref={videoRef}
@@ -102,7 +102,7 @@ export default function Hero() {
             muted
             playsInline
             preload="auto"
-            className="absolute inset-0 object-cover w-full h-full z-[-1]"
+            className={`absolute inset-0 object-cover w-full h-full z-[-1] transition-opacity duration-700 ease-in-out ${videoDone ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
             aria-hidden="true"
           />
         )}

@@ -19,7 +19,7 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <div className="relative min-h-screen bg-[#0f1015]">
+      <div className="relative min-h-screen bg-[#FAF8F5]">
         <Suspense fallback={null}>
           <LoadingScreen />
         </Suspense>

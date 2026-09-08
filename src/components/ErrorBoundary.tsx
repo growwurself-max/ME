@@ -39,33 +39,33 @@ export class ErrorBoundary extends React.Component<Props, State> {
       if (this.props.fallback) return this.props.fallback
 
       return (
-        <div className="flex min-h-[420px] w-full flex-col items-center justify-center gap-4 rounded-2xl border border-white/10 bg-[#0f1015] p-8 text-center">
+        <div className="flex min-h-[420px] w-full flex-col items-center justify-center gap-4 rounded-2xl border border-[#EAE5DC] bg-white p-8 text-center shadow-md">
           <div className="rounded-full bg-[#B88E52]/10 p-3">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#B88E52" strokeWidth="1.5">
               <path d="M12 9v4M12 17h.01M10.3 3.3L3.3 10.3c-.4.4-.6.9-.6 1.5s.2 1.1.6 1.5l7 7c.4.4.9.6 1.5.6s1.1-.2 1.5-.6l7-7c.4-.4.6-.9.6-1.5s-.2-1.1-.6-1.5l-7-7a2.1 2.1 0 00-3 0z" />
             </svg>
           </div>
-          <h3 className="font-display text-lg text-[#F4EDE2]">3D viewer unavailable</h3>
-          <p className="max-w-md text-sm leading-relaxed text-white/55">
+          <h3 className="font-display text-lg text-[#232120]">3D viewer unavailable</h3>
+          <p className="max-w-md text-sm leading-relaxed text-[#6B6864]">
             Your browser or device doesn't support WebGL, or the GPU context was lost.
             Try reloading or viewing the product gallery below.
           </p>
           <div className="flex gap-3 pt-2">
             <button
               onClick={this.handleRetry}
-              className="rounded-full bg-[#B88E52] px-5 py-2 text-sm font-medium text-white hover:bg-[#A3704C] transition-colors"
+              className="rounded-full bg-[#8C6D3F] px-5 py-2 text-sm font-medium text-white hover:bg-[#775A38] transition-colors"
             >
               Try again
             </button>
             <a
               href="#gallery"
-              className="rounded-full border border-white/15 px-5 py-2 text-sm text-white/80 hover:bg-white/10 transition-colors"
+              className="rounded-full border border-[#EAE5DC] px-5 py-2 text-sm text-[#232120] hover:bg-[#FAF8F5] transition-colors"
             >
               Browse gallery
             </a>
           </div>
           {(import.meta as any).env?.DEV && this.state.error && (
-            <pre className="mt-4 max-h-32 w-full overflow-auto rounded-lg bg-white/5 p-3 text-left text-[11px] leading-relaxed text-white/40">
+            <pre className="mt-4 max-h-32 w-full overflow-auto rounded-lg bg-[#F7F5F0] p-3 text-left text-[11px] leading-relaxed text-[#6B6864]">
               {this.state.error.message}
             </pre>
           )}
