@@ -12,6 +12,111 @@ import { ErrorBoundary } from '../ErrorBoundary'
 
 const LIGHT_LABELS = ['Morning', 'Afternoon', 'Evening'] as const
 
+type CraftSpot = { id: string; pos: [number, number, number]; title: string; detail: string }
+
+const CRAFT_SPOTS: Record<Product['shape'], CraftSpot[]> = {
+  sofa: [
+    {
+      id: 'sofa-teak',
+      pos: [1.3, 0.85, 0],
+      title: '✦ Solid Teak Core',
+      detail: 'Kiln-dried hardwood frame, corner-blocked & screwed for decades of use.',
+    },
+    {
+      id: 'sofa-velvet',
+      pos: [0, 1.22, 0.35],
+      title: '✦ Velvet Hydro-repellent',
+      detail: 'Stain-guard seats with hydro-repellent treatment that beads away spills.',
+    },
+    {
+      id: 'sofa-foam',
+      pos: [-1.05, 0.55, -0.3],
+      title: '✦ HR Foam Core',
+      detail: 'High-resilience layers calibrated for balanced sink, bounce & back support.',
+    },
+  ],
+  bed: [
+    {
+      id: 'bed-teak',
+      pos: [0, 0.6, 0],
+      title: '✦ Solid Teak Core',
+      detail: 'Premium-grade teak slats & frame with anti-warp kiln drying.',
+    },
+    {
+      id: 'bed-hydraulic',
+      pos: [0.95, 0.35, -1.25],
+      title: '✦ German Hydraulic Lift',
+      detail: 'Soft-close gas pistons rated to 10,000 lift cycles with feather-touch release.',
+    },
+    {
+      id: 'bed-headboard',
+      pos: [0, 1.45, -1.5],
+      title: '✦ Velvet Headboard',
+      detail: 'Button-tufted, padded headboard upholstered in stain-guard velvet.',
+    },
+  ],
+  dining: [
+    {
+      id: 'dining-marble',
+      pos: [0, 1.1, 0],
+      title: '✦ Italian Marble Top',
+      detail: 'Vein-cut, seal-coated stone with a hand-polished brass edge detail.',
+    },
+    {
+      id: 'dining-sheesham',
+      pos: [-1.6, 0.55, -0.7],
+      title: '✦ Solid Sheesham',
+      detail: 'Hand-finished sheesham timber with mortise-and-tenon joinery.',
+    },
+    {
+      id: 'dining-legs',
+      pos: [1.6, 0.42, 0.7],
+      title: '✦ Tapered Legs',
+      detail: 'Hand-turned tapered legs fitted with protective brass ferrules.',
+    },
+  ],
+  mattress: [
+    {
+      id: 'mat-pockets',
+      pos: [0, 0.3, -0.85],
+      title: '✦ Pocket Springs',
+      detail: 'Individually wrapped 5-zone coils — zero roll-together, full edge support.',
+    },
+    {
+      id: 'mat-foam',
+      pos: [0.85, 0.55, 0.6],
+      title: '✦ Cooling Memory Foam',
+      detail: 'Gel-infused top layer keeps the sleep surface cool through the night.',
+    },
+    {
+      id: 'mat-teak',
+      pos: [-0.9, 0.16, 0.95],
+      title: '✦ Teak Slat Base',
+      detail: 'Solid teak slatted foundation with 8 cm ventilation spacing.',
+    },
+  ],
+  table: [
+    {
+      id: 'table-tempered',
+      pos: [0, 0.84, 0],
+      title: '✦ Tempered Glass Option',
+      detail: '8 mm toughened top with a rounded, luxury-grade bevel.',
+    },
+    {
+      id: 'table-wood',
+      pos: [-1.05, 0.72, 0.4],
+      title: '✦ Mango Wood Top',
+      detail: 'Sculptural mango-wood surface finished in hand-rubbed oil.',
+    },
+    {
+      id: 'table-brass',
+      pos: [1.1, 0.62, -0.35],
+      title: '✦ Brushed Brass Inlay',
+      detail: 'Hand-set brushed brass detailing along the table apron.',
+    },
+  ],
+}
+
 function LayerPin({
   position,
   label,
@@ -40,32 +145,47 @@ function Hotspot({
   label,
   value,
   open,
+  onOpen,
+  onClose,
   onToggle,
 }: {
   position: [number, number, number]
   label: string
   value: string
   open: boolean
+  onOpen: () => void
+  onClose: () => void
   onToggle: () => void
 }) {
   return (
     <Html position={position} center distanceFactor={7} zIndexRange={[20, 0]}>
-      <button
-        onClick={(e) => {
-          e.stopPropagation()
-          onToggle()
-        }}
-        className="relative flex items-center justify-center outline-none"
-        aria-label={`${label}: ${value}`}
-      >
-        <span className="absolute inline-flex h-5 w-5 rounded-full bg-[#B88E52]/40 animate-ping" />
-        <span className="relative inline-flex h-4 w-4 rounded-full border-2 border-white bg-[#B88E52] shadow-lg" />
+      <div className="flex flex-col items-center">
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            onToggle()
+          }}
+          onMouseEnter={onOpen}
+          onMouseLeave={onClose}
+          className="hotspot-pulse relative flex items-center justify-center outline-none"
+          aria-label={`${label}: ${value}`}
+        >
+          <span className="hotspot-dot" />
+        </button>
         {open && (
-          <span className="absolute top-6 whitespace-nowrap glass-pill px-3 py-1.5 text-xs text-[#1F1D1A] shadow-xl">
-            <b className="text-[#A3704C]">{label}</b> · {value}
-          </span>
+          <div
+            className="pointer-events-auto mt-3 w-52 rounded-xl border border-[#B88E52]/35 bg-[#14120F]/90 p-3 text-left shadow-2xl backdrop-blur-xl animate-in"
+            style={{ boxShadow: '0 18px 40px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.08)' }}
+            onClick={(e) => {
+              e.stopPropagation()
+              onClose()
+            }}
+          >
+            <p className="text-[11px] font-semibold tracking-wide text-[#E7C98A]">{label}</p>
+            <p className="mt-1 text-[10px] leading-relaxed text-[#D8D2C8]">{value}</p>
+          </div>
         )}
-      </button>
+      </div>
     </Html>
   )
 }
@@ -115,16 +235,11 @@ export default function Furniture3DViewer({
   const [openSpot, setOpenSpot] = useState<string | null>(null)
   const [exploded, setExploded] = useState(false)
   const [lightMode, setLightMode] = useState(0.5)
-  const d = product.dimensions
   const isMattress = product.shape === 'mattress'
   const canExplode = product.shape === 'sofa' || product.shape === 'mattress'
   const explodeT = exploded && canExplode ? 1 : 0
 
-  const spots: { id: string; pos: [number, number, number]; label: string; value: string }[] = [
-    { id: 'w', pos: [d.width / 220, d.height / 120 + 0.3, d.depth / 160], label: 'Width', value: `${d.width} cm` },
-    { id: 'h', pos: [-d.width / 180, d.height / 90 + 0.5, 0], label: 'Height', value: `${d.height} cm` },
-    { id: 'd', pos: [0, d.height / 130 + 0.15, d.depth / 120], label: 'Depth', value: `${d.depth} cm` },
-  ]
+  const spots: CraftSpot[] = CRAFT_SPOTS[product.shape]
 
   const layerPins = (
     isMattress
@@ -237,9 +352,11 @@ export default function Furniture3DViewer({
               <Hotspot
                 key={s.id}
                 position={s.pos}
-                label={s.label}
-                value={s.value}
+                label={s.title}
+                value={s.detail}
                 open={openSpot === s.id}
+                onOpen={() => setOpenSpot(s.id)}
+                onClose={() => setOpenSpot((cur) => (cur === s.id ? null : cur))}
                 onToggle={() => setOpenSpot(openSpot === s.id ? null : s.id)}
               />
             ))}

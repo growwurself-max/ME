@@ -1,13 +1,24 @@
 import { useEffect, useState } from 'react'
 import { X, Send } from 'lucide-react'
 import { CATEGORIES, CONTACT } from '../data/products'
+import { useActiveProduct } from '../lib/activeProduct'
 
 export default function QuoteModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const activeProduct = useActiveProduct()
   const [category, setCategory] = useState(CATEGORIES[0].label)
   const [width, setWidth] = useState('')
   const [depth, setDepth] = useState('')
   const [height, setHeight] = useState('')
   const [notes, setNotes] = useState('')
+
+  // Pre-fill the category from whatever product is being viewed in 3D.
+  useEffect(() => {
+    if (!open) return
+    if (activeProduct) {
+      const cat = CATEGORIES.find((c) => c.id === activeProduct.category)
+      if (cat) setCategory(cat.label)
+    }
+  }, [open, activeProduct])
 
   useEffect(() => {
     if (!open) return
@@ -19,7 +30,8 @@ export default function QuoteModal({ open, onClose }: { open: boolean; onClose: 
   if (!open) return null
 
   const summary =
-    `Hi Mokshaa Enterprises! I'd like a custom quote.\n` +
+    `Hello Mokshaa Enterprises! I'd like a custom quote.\n` +
+    (activeProduct ? `• Product: ${activeProduct.name}\n` : '') +
     `• Category: ${category}\n` +
     (width ? `• Width: ${width} cm\n` : '') +
     (depth ? `• Depth: ${depth} cm\n` : '') +

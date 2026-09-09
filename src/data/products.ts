@@ -17,6 +17,8 @@ export type Product = {
   modelUrl?: string
   shape: 'sofa' | 'bed' | 'dining' | 'mattress' | 'table'
   warranty: string
+  weightCapacity: string
+  teakGrade: string
 }
 
 export type CategoryId =
@@ -45,9 +47,21 @@ export const FINISH_PRESETS: Record<string, Finish> = {
   emeraldVelvet: { name: 'Emerald Velvet', color: '#0a3d27', roughness: 0.65 },
   topGrainLeather: { name: 'Rich Top-Grain Leather', color: '#6b4226', roughness: 0.45 },
   sheeshamWood: { name: 'Natural Sheesham Wood', color: '#c9a884', roughness: 0.5 },
+  // Signature luxury swatches
+  royalEmeraldVelvet: { name: 'Royal Emerald Velvet', color: '#0b5644', roughness: 0.82 },
+  cognacLeather: { name: 'Cognac Leather', color: '#99582f', roughness: 0.48, metalness: 0.02 },
+  oatmealBouclé: { name: 'Oatmeal Bouclé', color: '#d6c9b4', roughness: 0.9 },
+  smokedWalnut: { name: 'Smoked Walnut', color: '#5a3e26', roughness: 0.55 },
 }
 
 const F = FINISH_PRESETS
+
+export const LUXURY_SWATCHES: Finish[] = [
+  F.royalEmeraldVelvet,
+  F.cognacLeather,
+  F.oatmealBouclé,
+  F.smokedWalnut,
+]
 
 export const PRODUCTS: Product[] = [
   {
@@ -62,6 +76,8 @@ export const PRODUCTS: Product[] = [
     finishes: [F.velvetEmerald, F.charcoalGrey, F.leatherTan],
     shape: 'sofa',
     warranty: '5 Years Frame Warranty',
+    weightCapacity: '350 kg',
+    teakGrade: 'Grade A · Kiln-Dried',
   },
   {
     id: 'chesterfield-royale',
@@ -75,6 +91,8 @@ export const PRODUCTS: Product[] = [
     finishes: [F.leatherTan, F.royalBlue, F.charcoalGrey],
     shape: 'sofa',
     warranty: '10 Year Warranty',
+    weightCapacity: '300 kg',
+    teakGrade: 'Grade A · Kiln-Dried',
   },
   {
     id: 'serenity-hydraulic-bed',
@@ -88,6 +106,8 @@ export const PRODUCTS: Product[] = [
     finishes: [F.walnutWood, F.charcoalGrey],
     shape: 'bed',
     warranty: '10 Year Warranty',
+    weightCapacity: '400 kg',
+    teakGrade: 'Premium Grade Teak',
   },
   {
     id: 'heritage-kids-cot',
@@ -101,6 +121,8 @@ export const PRODUCTS: Product[] = [
     finishes: [F.ivoryLinen, F.walnutWood],
     shape: 'bed',
     warranty: '5 Year Warranty',
+    weightCapacity: '150 kg',
+    teakGrade: 'Grade B · Hardwood',
   },
   {
     id: 'monarch-dining-set',
@@ -114,6 +136,8 @@ export const PRODUCTS: Product[] = [
     finishes: [F.walnutWood, F.charcoalGrey],
     shape: 'dining',
     warranty: '10 Year Warranty',
+    weightCapacity: '350 kg',
+    teakGrade: 'Grade A · Solid Sheesham',
   },
   {
     id: 'ortho-cloud-mattress',
@@ -127,6 +151,8 @@ export const PRODUCTS: Product[] = [
     finishes: [F.ivoryLinen, F.charcoalGrey],
     shape: 'mattress',
     warranty: '10 Year Warranty',
+    weightCapacity: '250 kg',
+    teakGrade: 'Teak Slat Foundation',
   },
   {
     id: 'lounge-accent-table',
@@ -140,6 +166,8 @@ export const PRODUCTS: Product[] = [
     finishes: [F.walnutWood, F.leatherTan, F.charcoalGrey],
     shape: 'table',
     warranty: '5 Year Warranty',
+    weightCapacity: '80 kg',
+    teakGrade: 'Mango Wood · Brass Inlay',
   },
 ]
 

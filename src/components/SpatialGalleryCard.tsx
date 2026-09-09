@@ -108,7 +108,7 @@ export default function SpatialGalleryCard({ item, onInspect }: SpatialGalleryCa
 
         {/* Card Content */}
         <div className="p-5 relative" style={{ transform: 'translateZ(20px)' }}>
-          <h3 className="font-display text-lg font-semibold mb-2 group-hover:text-brass-light transition-colors" style={{ color: '#1F1D1A' }}>
+          <h3 className="font-display text-lg font-semibold mb-2 group-hover:text-brass-light transition-colors tracking-tight" style={{ color: '#171513' }}>
             {item.title}
           </h3>
           

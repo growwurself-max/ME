@@ -92,11 +92,11 @@ export default function Hero() {
             </p>
             <h1
               className="hero-title font-display text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl leading-[1.05] tracking-tight mb-2 sm:mb-3 px-2 sm:px-4 font-semibold overflow-hidden"
-              style={{ color: '#141312' }}
+              style={{ color: '#171513' }}
             >
               <span className="inline-block overflow-hidden"><span className="inline-block">Crafting Comfort</span></span>
               <br />
-              <span className="inline-block overflow-hidden"><span className="inline-block italic" style={{ color: '#141312' }}>for Every Space</span></span>
+              <span className="inline-block overflow-hidden"><span className="inline-block font-serif italic" style={{ color: '#171513' }}>for Every Space</span></span>
             </h1>
           </div>
 

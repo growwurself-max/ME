@@ -30,7 +30,7 @@ export default function Gallery() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
-          <h2 className="font-display text-4xl md:text-5xl font-bold mb-4" style={{ color: '#1F1D1A' }}>
+          <h2 className="font-display text-4xl md:text-5xl font-bold mb-4 tracking-tight" style={{ color: '#171513' }}>
             Our Gallery
           </h2>
           <p className="max-w-2xl mx-auto" style={{ color: '#54504A' }}>
@@ -127,7 +127,7 @@ export default function Gallery() {
         {/* Business Info */}
         <div className="mt-16 grid md:grid-cols-2 gap-8 rounded-2xl p-8" style={{ backgroundColor: '#EDE8E1' }}>
           <div>
-            <h3 className="font-display text-2xl font-bold mb-4" style={{ color: '#1F1D1A' }}>
+            <h3 className="font-display text-2xl font-bold mb-4 tracking-tight" style={{ color: '#171513' }}>
               Visit Our Showroom
             </h3>
             <div className="space-y-3" style={{ color: '#54504A' }}>
@@ -143,7 +143,7 @@ export default function Gallery() {
             </div>
           </div>
           <div>
-            <h3 className="font-display text-2xl font-bold mb-4" style={{ color: '#1F1D1A' }}>
+            <h3 className="font-display text-2xl font-bold mb-4 tracking-tight" style={{ color: '#171513' }}>
               Contact Us
             </h3>
             <div className="space-y-3" style={{ color: '#54504A' }}>

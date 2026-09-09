@@ -2,13 +2,16 @@ import { MapPin, Phone, Mail, Clock } from 'lucide-react'
 import { CONTACT } from '../data/products'
 import RevealText from './RevealText'
 import MagneticButton from './MagneticButton'
+import { buildWhatsAppLink, useActiveProduct } from '../lib/activeProduct'
 
 export default function ContactFooter({ onQuote }: { onQuote: () => void }) {
+  const active = useActiveProduct()
+
   return (
     <footer id="contact" className="border-t border-oat bg-linen/40">
       <section className="mx-auto max-w-7xl px-6 py-24">
-        <p className="text-xs tracking-[0.35em] text-brass uppercase">Visit Our Showroom</p>
-        <RevealText text="Two locations. One promise." className="mt-4 font-display text-4xl sm:text-6xl" />
+        <p className="lux-badge">Visit Our Showroom</p>
+        <RevealText text="Two locations. One promise." className="mt-4 font-display text-4xl sm:text-6xl tracking-tight" style={{ color: '#171513' }} />
 
         <div className="mt-14 grid gap-8 lg:grid-cols-2">
           <div className="overflow-hidden rounded-3xl border border-oat shadow-studio bg-white p-2">
@@ -50,7 +53,7 @@ export default function ContactFooter({ onQuote }: { onQuote: () => void }) {
         </div>
 
         <div className="mt-16 flex flex-col items-center gap-5 rounded-3xl border border-brass/25 bg-white p-10 shadow-studio-lg text-center">
-          <h3 className="font-display text-3xl sm:text-4xl text-obsidian">Ready to design your space?</h3>
+          <h3 className="font-display text-3xl sm:text-4xl tracking-tight" style={{ color: '#171513' }}>Ready to design your space?</h3>
           <p className="max-w-md text-sm text-slate">
             Share your room dimensions and preferences — our design team responds within hours on WhatsApp.
           </p>
@@ -63,7 +66,7 @@ export default function ContactFooter({ onQuote }: { onQuote: () => void }) {
               Build My Custom Quote
             </MagneticButton>
             <MagneticButton
-              href={CONTACT.whatsapp}
+              href={buildWhatsAppLink(active?.name)}
               label="CHAT"
               className="rounded-full border border-oat bg-white px-8 py-3.5 text-obsidian hover:border-brass hover:text-teak transition-colors"
             >

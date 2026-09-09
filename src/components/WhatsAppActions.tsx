@@ -1,12 +1,15 @@
 import { MessageCircle, Calculator } from 'lucide-react'
-import { CONTACT } from '../data/products'
+import { buildWhatsAppLink, useActiveProduct } from '../lib/activeProduct'
 import MagneticButton from './MagneticButton'
 
 export default function WhatsAppActions({ onQuote }: { onQuote: () => void }) {
+  const active = useActiveProduct()
+  const waHref = buildWhatsAppLink(active?.name)
+
   return (
     <>
       <MagneticButton
-        href={CONTACT.whatsapp}
+        href={waHref}
         label="CHAT"
         className="fixed bottom-6 right-6 z-[90] flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-[0_8px_30px_rgba(37,211,102,0.4)] hover:scale-110 transition-transform"
       >

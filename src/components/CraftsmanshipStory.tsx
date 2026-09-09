@@ -12,10 +12,11 @@ const PILLARS = [
 export default function CraftsmanshipStory() {
   return (
     <section id="craft" className="relative mx-auto max-w-7xl px-6 py-28">
-      <p className="text-xs tracking-[0.35em] text-brass uppercase">Why Mokshaa</p>
+      <p className="lux-badge">Why Mokshaa</p>
       <RevealText
         text="Built by hand. Backed for a decade."
-        className="mt-4 font-display text-4xl sm:text-6xl leading-tight"
+        className="mt-4 font-display text-4xl sm:text-6xl leading-tight tracking-tight"
+        style={{ color: '#171513' }}
       />
       <div className="mt-16 grid gap-px overflow-hidden rounded-2xl border border-oat bg-oat/60 shadow-studio sm:grid-cols-2 lg:grid-cols-5">
         {PILLARS.map(({ icon: Icon, title, body }) => (
