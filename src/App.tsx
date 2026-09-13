@@ -9,6 +9,7 @@ import QuoteModal from './components/QuoteModal'
 import WhatsAppActions from './components/WhatsAppActions'
 import CursorFollower from './components/CursorFollower'
 import FloatingFurnitureLayer from './components/three/FloatingFurnitureLayer'
+import IntroVideo from './components/IntroVideo'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { useSmoothScroll } from './lib/smoothScroll'
 
@@ -19,6 +20,7 @@ export default function App() {
 
   return (
     <ErrorBoundary>
+      <IntroVideo />
       <div className="relative min-h-screen bg-[#FAF8F5]">
         <FloatingFurnitureLayer />
         <CursorFollower />
