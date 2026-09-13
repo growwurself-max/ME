@@ -3,8 +3,9 @@
 @tailwind utilities;
 
 html {
-  scroll-behavior: auto;
+  scroll-behavior: smooth;
   background: #FAF8F5;
+  overflow-x: hidden;
 }
 
 body {

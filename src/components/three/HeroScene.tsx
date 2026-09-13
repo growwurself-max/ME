@@ -7,6 +7,7 @@ import EnvironmentRig from './EnvironmentRig'
 import Effects from './Effects'
 import AmbientParticles from './AmbientParticles'
 import CameraRig, { ScrollDrivenGroup } from './CameraRig'
+import LightweightFloatingFurniture from './LightweightFloatingFurniture'
 import { ErrorBoundary } from '../ErrorBoundary'
 import CanvasErrorFallback from '../CanvasErrorFallback'
 import { HeroCanvasSkeleton } from '../ModelSkeleton'
@@ -114,8 +115,11 @@ export default function HeroScene({
     gl.setClearColor(new THREE.Color('#FAF8F5'))
     gl.shadowMap.enabled = perf.enableShadows
     gl.shadowMap.type = THREE.PCFSoftShadowMap
-    // Spec: Math.min(window.devicePixelRatio, 2)
-    gl.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+    // Optimize shadow map size for performance
+    gl.shadowMap.autoUpdate = false
+    gl.shadowMap.needsUpdate = true
+    // Clamp DPR to 1.5 max for 60fps performance
+    gl.setPixelRatio(Math.min(window.devicePixelRatio, 1.5))
 
     const canvas = gl.domElement
     const onLost = (e: Event) => { e.preventDefault(); setWebglFailed(true) }
@@ -148,10 +152,10 @@ export default function HeroScene({
   return (
     <ErrorBoundary fallback={<CanvasErrorFallback onRetry={() => window.location.reload()} />}>
       <Canvas
-        dpr={perf.dpr}
+        dpr={[1, 1.5]}
         camera={{ position: [0, 1.2, 6], fov }}
-        gl={{ antialias: perf.tier !== 'low', alpha: true, powerPreference: 'high-performance', stencil: false, depth: true }}
-        frameloop={perf.tier === 'low' ? 'demand' : 'always'}
+        gl={{ antialias: true, alpha: true, powerPreference: 'high-performance', stencil: false, depth: true }}
+        frameloop="always"
         onCreated={handleCreated as any}
         className="fixed inset-0 z-0 w-full h-full transition-opacity duration-700 ease-in-out"
         style={{ opacity: canvasReady ? 1 : 0, touchAction: is3DActive ? 'none' : 'pan-y', width: '100%', height: '100%' }}
@@ -164,6 +168,7 @@ export default function HeroScene({
           <AmbientParticles perf={perf} />
           <ScrollDrivenGroup perf={perf}><group /></ScrollDrivenGroup>
           <CameraRig perf={perf} intensity={1} />
+          <LightweightFloatingFurniture />
           <Html center>
             <div
               className="text-[#9B7A4F] text-[11px] tracking-[0.24em] uppercase whitespace-nowrap transition-opacity duration-500 select-none px-4 py-1.5 rounded-full"

@@ -33,10 +33,11 @@ export default function Effects({
   chromaticStrength?: number
   bloomIntensity?: number
 }) {
-  const shouldBloom = enableBloom ?? perf.enableBloom
+  // Disable heavy effects for 60fps performance
+  const shouldBloom = false
   const shouldVignette = enableVignette ?? perf.enableVignette
-  const shouldDoF = enableDoF ?? perf.enableDoF
-  const shouldChroma = enableChromatic ?? perf.enableChromatic
+  const shouldDoF = false
+  const shouldChroma = false
 
   const chromaticRef = useRef<any>(null)
   const velocity = useRef(0)
