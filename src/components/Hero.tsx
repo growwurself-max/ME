@@ -13,7 +13,7 @@ export default function Hero() {
   const canvasWrapRef = useRef<HTMLDivElement>(null)
   const scrollTrackRef = useRef<HTMLDivElement>(null)
 
-  // Cinematic staggered reveal — runs after preloader:done or immediately if already done
+  // Cinematic staggered reveal — plays immediately on mount
   useLayoutEffect(() => {
     const ctx = gsap.context(() => {
       // initial states
@@ -23,28 +23,12 @@ export default function Hero() {
       gsap.set('.hero-ctas > *', { yPercent: 30, opacity: 0 })
       gsap.set(canvasWrapRef.current, { opacity: 0, scale: 1.04, filter: 'blur(10px)' })
 
-      const tl = gsap.timeline({ paused: true, defaults: { ease: 'power3.out' } })
+      const tl = gsap.timeline({ defaults: { ease: 'power3.out' } })
       tl.to('.hero-eyebrow', { yPercent: 0, opacity: 1, duration: 0.8 }, 0)
         .to('.hero-title span', { yPercent: 0, opacity: 1, duration: 0.9, stagger: 0.12 }, 0.15)
         .to(canvasWrapRef.current, { opacity: 1, scale: 1, filter: 'blur(0px)', duration: 1.1, ease: 'power2.out' }, 0.2)
         .to('.hero-desc', { yPercent: 0, opacity: 1, duration: 0.7 }, 0.55)
         .to('.hero-ctas > *', { yPercent: 0, opacity: 1, duration: 0.6, stagger: 0.1 }, 0.68)
-
-      const play = () => tl.play(0)
-
-      // If preloader already done (no loading), play immediately — else wait for event
-      const handler = () => play()
-      window.addEventListener('preloader:done', handler, { once: true })
-
-      // Fallback: if no preloader event within 1.6s (e.g. direct reload with cache), auto-play
-      const fallback = setTimeout(() => {
-        if (tl.progress() === 0) play()
-      }, 1600)
-
-      return () => {
-        window.removeEventListener('preloader:done', handler)
-        clearTimeout(fallback)
-      }
     }, heroRef)
 
     return () => ctx.revert()
