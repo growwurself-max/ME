@@ -1,4 +1,4 @@
-import { useRef, type ReactNode, type MouseEvent, useLayoutEffect } from 'react'
+import { useRef, type ReactNode, type MouseEvent } from 'react'
 import gsap from 'gsap'
 
 export default function MagneticButton({
@@ -21,12 +21,6 @@ export default function MagneticButton({
   onMouseLeave?: (e: MouseEvent) => void
 }) {
   const ref = useRef<HTMLAnchorElement & HTMLButtonElement>(null)
-  const ctxRef = useRef<gsap.Context | null>(null)
-
-  useLayoutEffect(() => {
-    ctxRef.current = gsap.context(() => {}, ref)
-    return () => ctxRef.current?.revert()
-  }, [])
 
   const onMove = (e: MouseEvent) => {
     const el = ref.current
@@ -35,31 +29,29 @@ export default function MagneticButton({
     const x = e.clientX - r.left - r.width / 2
     const y = e.clientY - r.top - r.height / 2
     gsap.to(el, {
-      x: x * 0.28,
-      y: y * 0.32,
-      duration: 0.35,
-      ease: 'power3.out',
-      overwrite: true,
+      x: x * 0.25,
+      y: y * 0.25,
+      duration: 0.3,
+      ease: 'power2.out',
     })
   }
-
   const onLeave = () => {
-    if (!ref.current) return
-    gsap.to(ref.current, {
+    if (ref.current) gsap.to(ref.current, {
       x: 0,
       y: 0,
-      duration: 0.7,
-      ease: 'elastic.out(1, 0.32)',
-      overwrite: true,
+      duration: 0.6,
+      ease: 'elastic.out(1, 0.3)',
     })
   }
 
   const finalOnMouseEnter = (e: MouseEvent) => {
-    onMouseEnter?.(e)
+    onMove(e)
+    if (onMouseEnter) onMouseEnter(e)
   }
+
   const finalOnMouseLeave = (e: MouseEvent) => {
     onLeave()
-    onMouseLeave?.(e)
+    if (onMouseLeave) onMouseLeave(e)
   }
 
   if (href) {
@@ -70,14 +62,12 @@ export default function MagneticButton({
         target={href.startsWith('http') ? '_blank' : undefined}
         rel="noreferrer"
         data-magnetic={label}
-        className={`${className} inline-flex items-center justify-center will-change-transform`}
+        className={className}
         style={style}
         onMouseMove={onMove}
         onMouseEnter={finalOnMouseEnter}
         onMouseLeave={finalOnMouseLeave}
       >
-        {/* subtle shine on hover */}
-        <span className="pointer-events-none absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
         {children}
       </a>
     )
@@ -86,7 +76,7 @@ export default function MagneticButton({
     <button
       ref={ref as never}
       data-magnetic={label}
-      className={`${className} inline-flex items-center justify-center will-change-transform`}
+      className={className}
       style={style}
       onClick={onClick}
       onMouseMove={onMove}

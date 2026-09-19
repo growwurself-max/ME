@@ -1,126 +1,70 @@
-import { useState, useRef, useLayoutEffect } from 'react'
+import { Suspense, lazy, useState } from 'react'
 import { ArrowDown, Sparkles } from 'lucide-react'
-import { gsap, ScrollTrigger } from '../lib/smoothScroll'
 import MagneticButton from './MagneticButton'
 import { LightSimulator } from './three/Furniture3DViewer'
-import HeroScene from './three/HeroScene'
+
+const HeroScene = lazy(() => import('./three/HeroScene'))
 
 export default function Hero() {
   const [lightMode, setLightMode] = useState(0.5)
 
-  // Refs
-  const heroRef = useRef<HTMLDivElement>(null)
-  const canvasWrapRef = useRef<HTMLDivElement>(null)
-  const scrollTrackRef = useRef<HTMLDivElement>(null)
-
-  // Cinematic staggered reveal — plays immediately on mount
-  useLayoutEffect(() => {
-    const ctx = gsap.context(() => {
-      // initial states
-      gsap.set('.hero-eyebrow', { yPercent: 110, opacity: 0 })
-      gsap.set('.hero-title span', { yPercent: 110, opacity: 0 })
-      gsap.set('.hero-desc', { yPercent: 20, opacity: 0 })
-      gsap.set('.hero-ctas > *', { yPercent: 30, opacity: 0 })
-      gsap.set(canvasWrapRef.current, { opacity: 0, scale: 1.04, filter: 'blur(10px)' })
-
-      const tl = gsap.timeline({ defaults: { ease: 'power3.out' } })
-      tl.to('.hero-eyebrow', { yPercent: 0, opacity: 1, duration: 0.8 }, 0)
-        .to('.hero-title span', { yPercent: 0, opacity: 1, duration: 0.9, stagger: 0.12 }, 0.15)
-        .to(canvasWrapRef.current, { opacity: 1, scale: 1, filter: 'blur(0px)', duration: 1.1, ease: 'power2.out' }, 0.2)
-        .to('.hero-desc', { yPercent: 0, opacity: 1, duration: 0.7 }, 0.55)
-        .to('.hero-ctas > *', { yPercent: 0, opacity: 1, duration: 0.6, stagger: 0.1 }, 0.68)
-    }, heroRef)
-
-    return () => ctx.revert()
-  }, [])
-
-  // Fade out + slide up hero typography as the user scrolls, so the product
-  // cards from the collection walkthrough never collide with the headline.
-  useLayoutEffect(() => {
-    const track = scrollTrackRef.current
-    const copy = heroRef.current?.querySelector('.hero-copy')
-    if (!track || !copy) return
-
-    const tween = gsap.to(copy, {
-      opacity: 0,
-      yPercent: -80,
-      filter: 'blur(10px)',
-      ease: 'none',
-      scrollTrigger: {
-        trigger: track,
-        start: 'top top',
-        end: '+=22vh',
-        scrub: 0.4,
-      },
-    })
-
-    return () => {
-      tween.scrollTrigger?.kill()
-      tween.kill()
-    }
-  }, [])
-
   return (
-    <>
-      <div id="scroll-track" ref={scrollTrackRef} className="h-[500vh] w-full pointer-events-none relative" aria-hidden="true" />
+    <section id="top" className="relative h-[100svh] min-h-[620px] overflow-hidden">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_35%,#FFFFFF_0%,#FAF8F5_45%,#F2EDE4_100%)]" />
+      <Suspense fallback={null}>
+        <HeroScene lightMode={lightMode} />
+      </Suspense>
 
-      <section id="top" ref={heroRef} className="h-[100svh] min-h-[620px] overflow-hidden fixed inset-0 z-0 bg-[#FAF8F5]">
-        <div ref={canvasWrapRef} className="absolute inset-0 z-0">
-          <HeroScene lightMode={lightMode} />
+      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-between py-20 text-center">
+        <div className="mt-8">
+          <p className="mb-3 flex items-center justify-center gap-2 text-xs tracking-[0.4em] text-brass uppercase">
+            <Sparkles size={13} /> Since Hyderabad · Est. Craftsmanship
+          </p>
+          <h1 className="font-display text-5xl sm:text-7xl lg:text-8xl leading-tight tracking-tight mb-2" style={{ color: '#1F1D1A' }}>
+            Crafting Comfort
+            <br />
+            <span className="italic gold-gradient-text">for Every Space</span>
+          </h1>
         </div>
 
-        <div className="hero-copy pointer-events-none absolute inset-0 flex flex-col items-center justify-between py-8 sm:py-12 md:py-20 text-center z-10 px-4 sm:px-0">
-          <div className="mt-4 sm:mt-6 md:mt-8 flex-1 flex flex-col items-center justify-center min-h-0">
-            <p className="hero-eyebrow mb-2 sm:mb-3 flex items-center justify-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs md:text-sm font-semibold uppercase overflow-hidden" style={{ color: '#7A5C32', letterSpacing: '0.25em' }}>
-              <span className="inline-flex items-center gap-2"><Sparkles size={12} className="sm:size-14 md:size-[16px]" /> Since Hyderabad · Est. Craftsmanship</span>
-            </p>
-            <h1
-              className="hero-title font-display text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl leading-[1.05] tracking-tight mb-2 sm:mb-3 px-2 sm:px-4 font-semibold overflow-hidden"
-              style={{ color: '#171513' }}
+        <div className="pointer-events-auto flex flex-col items-center gap-6">
+          <p className="max-w-md text-sm leading-relaxed px-6" style={{ color: '#54504A' }}>
+            Luxury sofas, cots, dining sets & mattresses — custom-built with premium hardwood and
+            factory-direct pricing. Scroll to enter the 3D showroom.
+          </p>
+          <div className="flex gap-4">
+<MagneticButton
+  href="#collection"
+  label="EXPLORE"
+  className="rounded-full px-8 py-3.5 text-white font-semibold transition-colors"
+  style={{ backgroundColor: '#8C6D48' }}
+  onMouseEnter={(e) => (e.currentTarget as HTMLElement).style.backgroundColor = '#775A38'}
+  onMouseLeave={(e) => (e.currentTarget as HTMLElement).style.backgroundColor = '#8C6D48'}
+>
+              Explore Collection
+            </MagneticButton>
+<MagneticButton
+  href="#quote"
+  label="QUOTE"
+  className="rounded-full border backdrop-blur-md px-8 py-3.5 font-medium transition-colors"
+  style={{ backgroundColor: 'rgba(255, 255, 255, 0.6)', borderColor: 'rgba(130, 115, 95, 0.25)', color: '#1F1D1A' }}
+  onMouseEnter={(e) => (e.currentTarget as HTMLElement).style.borderColor = '#8C6D48'}
+  onMouseLeave={(e) => (e.currentTarget as HTMLElement).style.borderColor = 'rgba(130, 115, 95, 0.25)'}
             >
-              <span className="inline-block overflow-hidden"><span className="inline-block">Crafting Comfort</span></span>
-              <br />
-              <span className="inline-block overflow-hidden"><span className="inline-block font-serif italic" style={{ color: '#171513' }}>for Every Space</span></span>
-            </h1>
-          </div>
-
-          <div className="pointer-events-auto flex flex-col items-center gap-3 sm:gap-4 md:gap-6 w-full max-w-md px-3 sm:px-4 pb-16 sm:pb-20 md:pb-12">
-            <p className="hero-desc text-xs sm:text-sm md:text-base font-medium leading-relaxed px-1 sm:px-2 overflow-hidden" style={{ color: '#3D3B38' }}>
-              <span className="inline-block">Luxury sofas, cots, dining sets & mattresses — custom-built with premium hardwood and factory-direct pricing.</span>
-            </p>
-            <div className="hero-ctas flex flex-col sm:flex-row gap-2.5 sm:gap-3 md:gap-4 w-full overflow-hidden">
-              <MagneticButton
-                href="#collection"
-                label="EXPLORE"
-                className="rounded-full px-5 sm:px-6 md:px-8 py-2.5 sm:py-3 md:py-3.5 text-white font-semibold transition-colors w-full sm:w-auto text-xs sm:text-sm md:text-base"
-                style={{ backgroundColor: '#8C6D48' }}
-                onMouseEnter={(e) => (e.currentTarget as HTMLElement).style.backgroundColor = '#775A38'}
-                onMouseLeave={(e) => (e.currentTarget as HTMLElement).style.backgroundColor = '#8C6D48'}
-              >
-                Explore Collection
-              </MagneticButton>
-              <MagneticButton
-                href="#quote"
-                label="QUOTE"
-                className="rounded-full border backdrop-blur-md px-5 sm:px-6 md:px-8 py-2.5 sm:py-3 md:py-3.5 font-medium transition-colors w-full sm:w-auto text-xs sm:text-sm md:text-base"
-                style={{ backgroundColor: 'rgba(255, 255, 255, 0.65)', borderColor: 'rgba(130, 115, 95, 0.25)', color: '#1F1D1A' }}
-                onMouseEnter={(e) => (e.currentTarget as HTMLElement).style.borderColor = '#8C6D48'}
-                onMouseLeave={(e) => (e.currentTarget as HTMLElement).style.borderColor = 'rgba(130, 115, 95, 0.25)'}
-              >
-                Get a Quote
-              </MagneticButton>
-            </div>
+              Get a Quote
+            </MagneticButton>
           </div>
         </div>
+      </div>
 
-        <div className="absolute bottom-4 sm:bottom-5 left-1/2 z-20 -translate-x-1/2 animate-bounce text-[#7A5C32]/70 hidden sm:block">
-          <ArrowDown size={16} className="sm:size-[18px]" />
-        </div>
+      <div className="absolute bottom-5 left-1/2 z-20 -translate-x-1/2 animate-bounce text-slate/70">
+        <ArrowDown size={18} />
+      </div>
 
-        <div className="absolute bottom-4 sm:bottom-6 md:bottom-8 left-3 sm:left-4 md:left-6 z-20 hidden sm:block">
-          <LightSimulator mode={lightMode} onChange={setLightMode} />
-        </div>
-      </section>
-    </>
+      {/* Floating day-to-night lighting simulator over the showroom canvas */}
+      <div className="absolute bottom-8 left-6 z-20 hidden sm:block">
+        <LightSimulator mode={lightMode} onChange={setLightMode} />
+      </div>
+    </section>
   )
 }

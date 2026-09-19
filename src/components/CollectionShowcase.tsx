@@ -1,45 +1,31 @@
-import { Suspense, useEffect, useRef, useState } from 'react'
-import { Box, Move3d } from 'lucide-react'
+import { Suspense, lazy, useEffect, useRef, useState } from 'react'
+import { Box, Maximize, Move3d } from 'lucide-react'
 import { CATEGORIES, FINISH_PRESETS, PRODUCTS, type Finish, type Product } from '../data/products'
 import ModelViewerModal from './three/ModelViewerModal'
 import RevealText from './RevealText'
 import TiltCard from './TiltCard'
-import Furniture3DViewer from './three/Furniture3DViewer'
-import { setActiveProduct } from '../lib/activeProduct'
 import { gsap, ScrollTrigger } from '../lib/smoothScroll'
+
+const Furniture3DViewer = lazy(() => import('./three/Furniture3DViewer'))
 
 function PanelCanvas({ product }: { product: Product }) {
   const holder = useRef<HTMLDivElement>(null)
   const [visible, setVisible] = useState(false)
-  const [animated, setAnimated] = useState(false)
 
   useEffect(() => {
     const el = holder.current
     if (!el) return
-    const io = new IntersectionObserver(([e]) => {
-      if (e.isIntersecting) {
-        setVisible(true)
-        setActiveProduct(product)
-        // Trigger entrance animation after small delay
-        setTimeout(() => setAnimated(true), 100)
-      } else {
-        setVisible(false)
-        setAnimated(false)
-      }
-    }, { threshold: 0.15 })
+    const io = new IntersectionObserver(([e]) => setVisible(e.isIntersecting), { threshold: 0.15 })
     io.observe(el)
     return () => io.disconnect()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (
     <div ref={holder} className="h-full w-full">
       {visible && (
-        <div className={`h-full w-full transition-all duration-700 ease-out ${animated ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
-          <Suspense fallback={null}>
-            <Furniture3DViewer product={product} finish={FINISH_PRESETS.ivoryLinen} showHotspots={false} />
-          </Suspense>
-        </div>
+        <Suspense fallback={null}>
+          <Furniture3DViewer product={product} finish={FINISH_PRESETS.ivoryLinen} showHotspots={false} />
+        </Suspense>
       )}
       {!visible && (
         <div className="flex h-full items-center justify-center text-oat">
@@ -88,22 +74,6 @@ export default function CollectionShowcase() {
           },
         })
       })
-      // Fade each product card in only once its panel enters the walkthrough,
-      // so cards never collide with the hero typography that scrolled away.
-      gsap.utils.toArray<HTMLElement>('.panel-card').forEach((card) => {
-        gsap.fromTo(card, { opacity: 0, y: 44 }, {
-          opacity: 1,
-          y: 0,
-          ease: 'power2.out',
-          scrollTrigger: {
-            trigger: card,
-            containerAnimation: horizTween,
-            start: 'left 92%',
-            end: 'left 45%',
-            scrub: true,
-          },
-        })
-      })
     })
     return () => ctx.revert()
   }, [])
@@ -122,11 +92,11 @@ export default function CollectionShowcase() {
                   <span className="font-display text-[38vh] leading-none whitespace-nowrap">{`0${i + 1}`}</span>
                 </div>
 
-                <div className="panel-card relative z-10 w-full max-w-6xl mx-auto">
+                <div className="relative z-10 w-full max-w-6xl mx-auto">
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
                     {/* Left Column - 3D Viewer */}
                     <div className="order-1 lg:order-1 lg:col-span-7">
-                      <div className="h-[320px] cursor-grab active:cursor-grabbing rounded-2xl overflow-hidden relative shadow-sm transition-all duration-300 hover:shadow-xl hover:scale-[1.02]" style={{ backgroundColor: '#ECE7E1', border: '1px solid rgba(130, 115, 95, 0.2)' }}>
+                      <div className="h-[440px] cursor-grab active:cursor-grabbing rounded-2xl overflow-hidden relative shadow-sm" style={{ backgroundColor: '#ECE7E1', border: '1px solid rgba(130, 115, 95, 0.2)' }}>
                         <PanelCanvas product={product} />
                         <span className="absolute right-4 top-4 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] tracking-widest uppercase" style={{ backgroundColor: 'rgba(232, 227, 220, 0.8)', backdropFilter: 'blur(12px) saturate(1.2)', WebkitBackdropFilter: 'blur(12px) saturate(1.2)', border: '1px solid #D5CEC4', color: '#54504A' }}>
                           <Move3d size={12} className="text-brass" /> 360° Drag
@@ -137,44 +107,37 @@ export default function CollectionShowcase() {
                     {/* Right Column - Product Details */}
                     <div className="order-2 lg:order-2 lg:col-span-5 w-full pr-4">
                       <p className="text-xs tracking-[0.35em] uppercase" style={{ color: '#9E7B56' }}>{`0${i + 1} — ${cat.label}`}</p>
-                      <h3 className="mt-3 font-display text-3xl lg:text-4xl leading-tight tracking-tight font-medium" style={{ color: '#171513' }}>{product.name}</h3>
-                      <p className="mt-1 font-serif text-base italic tracking-tight" style={{ color: '#8C6D48' }}>{product.tagline}</p>
-                      <p className="mt-4 text-sm leading-relaxed" style={{ color: '#54504A' }}>{product.description}</p>
-
-                      {/* Spec Sheet — minimalist metric grid */}
-                      <div className="mt-5 grid grid-cols-2 gap-2.5">
-                        {[
-                          { label: 'Dimensions', value: `${product.dimensions.width} × ${product.dimensions.depth} × ${product.dimensions.height} cm` },
-                          { label: 'Weight Capacity', value: product.weightCapacity },
-                          { label: 'Warranty', value: product.warranty },
-                          { label: 'Teak Grade', value: product.teakGrade },
-                        ].map((m) => (
-                          <div
-                            key={m.label}
-                            className="rounded-xl border bg-white/55 p-3.5 backdrop-blur-sm transition-colors duration-300 hover:border-[#8C6D3F]/30"
-                            style={{ borderColor: 'rgba(130, 115, 95, 0.18)' }}
-                          >
-                            <p className="text-[10px] font-medium uppercase tracking-[0.22em]" style={{ color: '#8C6D3F' }}>{m.label}</p>
-                            <p className="mt-1.5 text-sm font-semibold leading-snug" style={{ color: '#171513' }}>{m.value}</p>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="mt-4 flex items-center gap-2">
-                        <span className="lux-badge">{product.priceRange}</span>
+                      <h3 className="mt-3 font-display text-3xl lg:text-4xl leading-tight font-medium" style={{ color: '#1F1D1A' }}>{product.name}</h3>
+                      <p className="mt-1 text-base italic" style={{ color: '#8C6D48' }}>{product.tagline}</p>
+                      <p className="mt-3 text-sm leading-relaxed" style={{ color: '#54504A' }}>{product.description}</p>
+                      
+                      {/* Specs Grid */}
+                      <div className="mt-5 space-y-2">
+                        <div className="flex items-center justify-between py-2 border-b" style={{ borderColor: 'rgba(130, 115, 95, 0.15)' }}>
+                          <span className="text-sm" style={{ color: '#54504A' }}>Dimensions</span>
+                          <span className="text-sm font-medium" style={{ color: '#1F1D1A' }}>{product.dimensions.width} × {product.dimensions.depth} × {product.dimensions.height} cm</span>
+                        </div>
+                        <div className="flex items-center justify-between py-2 border-b" style={{ borderColor: 'rgba(130, 115, 95, 0.15)' }}>
+                          <span className="text-sm" style={{ color: '#54504A' }}>Warranty</span>
+                          <span className="text-sm font-medium" style={{ color: '#1F1D1A' }}>{product.warranty}</span>
+                        </div>
+                        <div className="flex items-center justify-between py-2 border-b" style={{ borderColor: 'rgba(130, 115, 95, 0.15)' }}>
+                          <span className="text-sm" style={{ color: '#54504A' }}>Price</span>
+                          <span className="text-sm font-medium" style={{ color: '#1F1D1A' }}>{product.priceRange}</span>
+                        </div>
                       </div>
 
                       <button
                         onClick={() => {
                           setFinish(product.finishes[0])
-                          setActiveProduct(product)
                           setSelected(product)
                         }}
-                        className="mt-6 inline-flex items-center justify-center gap-2 rounded-full border px-6 py-3 text-sm font-medium transition-colors w-full"
+                        className="mt-6 inline-flex items-center gap-2 rounded-full border px-6 py-3 text-sm font-medium transition-colors w-full justify-center"
                         style={{ borderColor: 'rgba(184, 142, 82, 0.5)', color: '#A3704C' }}
                         onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#B88E52'; e.currentTarget.style.color = '#FFFFFF'; }}
                         onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#A3704C'; }}
                       >
-                        Inspect in 3D
+                        <Maximize size={16} /> Inspect in 3D
                       </button>
                     </div>
                   </div>
@@ -189,8 +152,8 @@ export default function CollectionShowcase() {
       <section className="mx-auto max-w-7xl px-6 py-28">
         <RevealText
           text="The Complete Catalogue"
-          className="font-display text-4xl sm:text-5xl tracking-tight mb-14"
-          style={{ color: '#171513' }}
+          className="font-display text-4xl sm:text-5xl mb-14"
+          style={{ color: '#1F1D1A' }}
         />
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3" style={{ perspective: '1400px' }}>
           {PRODUCTS.map((p) => (
@@ -198,7 +161,6 @@ export default function CollectionShowcase() {
               <div
                 onClick={() => {
                   setFinish(p.finishes[0])
-                  setActiveProduct(p)
                   setSelected(p)
                 }}
                 className="group cursor-pointer rounded-2xl card-lux p-6 hover:border-brass/40 transition-[border-color,box-shadow] duration-300 hover:shadow-studio-lg"
@@ -209,8 +171,8 @@ export default function CollectionShowcase() {
                     <Move3d size={11} /> 360°
                   </span>
                 </div>
-                <h3 className="mt-2 font-display text-2xl tracking-tight" style={{ color: '#171513' }}>{p.name}</h3>
-                <p className="mt-2 font-serif text-sm italic" style={{ color: '#54504A' }}>{p.tagline}</p>
+                <h3 className="mt-2 font-display text-2xl" style={{ color: '#1F1D1A' }}>{p.name}</h3>
+                <p className="mt-2 text-sm" style={{ color: '#54504A' }}>{p.tagline}</p>
                 <div className="mt-4 h-px w-full bg-gradient-to-r from-brass/40 to-transparent" />
                 <div className="mt-4 flex items-center justify-between">
                   <span className="text-sm text-slate">{p.priceRange}</span>
@@ -218,7 +180,6 @@ export default function CollectionShowcase() {
                     onClick={(e) => {
                       e.stopPropagation()
                       setFinish(p.finishes[0])
-                      setActiveProduct(p)
                       setSelected(p)
                     }}
                     className="text-sm text-teak opacity-0 group-hover:opacity-100 transition-opacity"

@@ -76,7 +76,6 @@ export default function SpatialGalleryCard({ item, onInspect }: SpatialGalleryCa
             alt={item.title}
             className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
             loading="lazy"
-            crossOrigin="anonymous"
           />
           
           {/* Dynamic Sheen Effect */}
@@ -108,7 +107,7 @@ export default function SpatialGalleryCard({ item, onInspect }: SpatialGalleryCa
 
         {/* Card Content */}
         <div className="p-5 relative" style={{ transform: 'translateZ(20px)' }}>
-          <h3 className="font-display text-lg font-semibold mb-2 group-hover:text-brass-light transition-colors tracking-tight" style={{ color: '#171513' }}>
+          <h3 className="font-display text-lg font-semibold mb-2 group-hover:text-brass-light transition-colors" style={{ color: '#1F1D1A' }}>
             {item.title}
           </h3>
           
