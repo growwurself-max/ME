@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Box, Cylinder } from '@react-three/drei'
 import * as THREE from 'three'
@@ -29,21 +29,67 @@ interface FloatingItemProps {
   floatSpeed: number
   floatAmplitude: number
   rotationSpeed: number
+  seed: number
 }
 
-function FloatingChair({ position, rotation, scale, floatSpeed, floatAmplitude, rotationSpeed }: FloatingItemProps) {
+// Deterministic per-seed PRNG (mulberry32) so each item keeps a stable,
+// unique drift pattern across renders without the items moving in sync.
+function mulberry32(seed: number) {
+  let a = seed >>> 0
+  return () => {
+    a = (a + 0x6d2b79f5) | 0
+    let t = Math.imul(a ^ (a >>> 15), 1 | a)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+// Per-item drift parameters: independent phase, direction angle, elliptical
+// (X/Z) frequencies and amplitudes. sin/cos-based so the path is continuous,
+// smooth and loops forever with no sudden jumps.
+function useDriftParams(seed: number) {
+  return useMemo(() => {
+    const rand = mulberry32(seed)
+    const phase = rand() * Math.PI * 2
+    const dirAngle = rand() * Math.PI * 2
+    const freqX = 0.15 + rand() * 0.25
+    const freqZ = 0.15 + rand() * 0.25
+    const ampX = 0.25 + rand() * 0.4
+    const ampZ = 0.15 + rand() * 0.3
+    return { phase, dirAngle, freqX, freqZ, ampX, ampZ }
+  }, [seed])
+}
+
+// Shared motion: continuous X/Z drifting along the item's own direction plus
+// the existing Y bob and slow rotation.
+function useFloatingMotion({ position, floatSpeed, floatAmplitude, rotationSpeed, seed }: FloatingItemProps) {
   const groupRef = useRef<THREE.Group>(null)
-  
+  const drift = useDriftParams(seed)
+
   useFrame((state) => {
     if (!groupRef.current) return
-    
-    // Gentle bobbing animation
-    const floatY = Math.sin(state.clock.elapsedTime * floatSpeed) * floatAmplitude
-    groupRef.current.position.y = position[1] + floatY
-    
-    // Slow rotation
+
+    const t = state.clock.elapsedTime * floatSpeed
+    const cos = Math.cos(drift.dirAngle)
+    const sin = Math.sin(drift.dirAngle)
+    const lx = Math.sin(t * drift.freqX + drift.phase) * drift.ampX
+    const lz = Math.cos(t * drift.freqZ + drift.phase) * drift.ampZ
+
+    // Rotate the elliptical path into this item's personal direction.
+    groupRef.current.position.x = position[0] + lx * cos + lz * sin
+    groupRef.current.position.z = position[2] - lx * sin + lz * cos
+    // Existing gentle bobbing.
+    groupRef.current.position.y = position[1] + Math.sin(t) * floatAmplitude
+    // Existing slow rotation.
     groupRef.current.rotation.y += rotationSpeed * 0.01
   })
+
+  return groupRef
+}
+
+function FloatingChair(props: FloatingItemProps) {
+  const { position, rotation, scale } = props
+  const groupRef = useFloatingMotion(props)
 
   return (
     <group ref={groupRef} position={position} rotation={rotation} scale={scale}>
@@ -60,16 +106,9 @@ function FloatingChair({ position, rotation, scale, floatSpeed, floatAmplitude, 
   )
 }
 
-function FloatingTable({ position, rotation, scale, floatSpeed, floatAmplitude, rotationSpeed }: FloatingItemProps) {
-  const groupRef = useRef<THREE.Group>(null)
-  
-  useFrame((state) => {
-    if (!groupRef.current) return
-    
-    const floatY = Math.sin(state.clock.elapsedTime * floatSpeed) * floatAmplitude
-    groupRef.current.position.y = position[1] + floatY
-    groupRef.current.rotation.y += rotationSpeed * 0.01
-  })
+function FloatingTable(props: FloatingItemProps) {
+  const { position, rotation, scale } = props
+  const groupRef = useFloatingMotion(props)
 
   return (
     <group ref={groupRef} position={position} rotation={rotation} scale={scale}>
@@ -84,16 +123,9 @@ function FloatingTable({ position, rotation, scale, floatSpeed, floatAmplitude, 
   )
 }
 
-function FloatingLamp({ position, rotation, scale, floatSpeed, floatAmplitude, rotationSpeed }: FloatingItemProps) {
-  const groupRef = useRef<THREE.Group>(null)
-  
-  useFrame((state) => {
-    if (!groupRef.current) return
-    
-    const floatY = Math.sin(state.clock.elapsedTime * floatSpeed) * floatAmplitude
-    groupRef.current.position.y = position[1] + floatY
-    groupRef.current.rotation.y += rotationSpeed * 0.01
-  })
+function FloatingLamp(props: FloatingItemProps) {
+  const { position, rotation, scale } = props
+  const groupRef = useFloatingMotion(props)
 
   return (
     <group ref={groupRef} position={position} rotation={rotation} scale={scale}>
@@ -120,7 +152,7 @@ export default function LightweightFloatingFurniture({ scrollProgress = 0 }: Lig
   ]
 
   return (
-    <group pointer-events="none">
+    <group>
       {items.map((item, index) => {
         const Component = item.type === 'chair' ? FloatingChair : item.type === 'table' ? FloatingTable : FloatingLamp
         return (
@@ -132,6 +164,7 @@ export default function LightweightFloatingFurniture({ scrollProgress = 0 }: Lig
             floatSpeed={item.floatSpeed}
             floatAmplitude={item.floatAmplitude}
             rotationSpeed={item.rotationSpeed}
+            seed={index * 2654435761 + 1}
           />
         )
       })}
