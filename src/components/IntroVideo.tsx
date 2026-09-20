@@ -6,6 +6,8 @@ export default function IntroVideo() {
 
   const handleVideoEnd = () => {
     setExiting(true)
+    // Signal the app to start warming up the 3D showroom behind the fading intro.
+    window.dispatchEvent(new CustomEvent('intro:start-exit'))
     // Allow fade-out transition to complete before unmounting
     setTimeout(() => setVisible(false), 1000)
   }

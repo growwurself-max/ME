@@ -1,10 +1,10 @@
-import { useState, useMemo } from 'react'
+import { lazy, Suspense, useState, useMemo } from 'react'
 import { Filter, Grid, Circle } from 'lucide-react'
 import { galleryData, categories, GalleryItem } from '../data/galleryData'
 import SpatialGalleryCard from './SpatialGalleryCard'
-import Curved3DGallery from './three/Curved3DGallery'
-import SpatialPlinthModal from './three/SpatialPlinthModal'
 
+const Curved3DGallery = lazy(() => import('./three/Curved3DGallery'))
+const SpatialPlinthModal = lazy(() => import('./three/SpatialPlinthModal'))
 type ViewMode = '3d' | 'grid'
 
 export default function Gallery() {
@@ -98,7 +98,17 @@ export default function Gallery() {
 
         {/* Gallery Content */}
         {viewMode === '3d' ? (
-          <Curved3DGallery items={filteredItems} onItemClick={handleInspect} />
+          <Suspense
+            fallback={
+              <div className="relative w-full h-[500px] md:h-[600px] rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(to bottom right, #E0DAD2, #D4CDC3)' }}>
+                <div className="flex h-full items-center justify-center text-sm" style={{ color: '#54504A' }}>
+                  Loading 3D gallery…
+                </div>
+              </div>
+            }
+          >
+            <Curved3DGallery items={filteredItems} onItemClick={handleInspect} />
+          </Suspense>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredItems.map((item) => (
@@ -162,7 +172,9 @@ export default function Gallery() {
 
       {/* Modal */}
       {selectedItem && (
-        <SpatialPlinthModal item={selectedItem} onClose={handleCloseModal} />
+        <Suspense fallback={null}>
+          <SpatialPlinthModal item={selectedItem} onClose={handleCloseModal} />
+        </Suspense>
       )}
     </section>
   )

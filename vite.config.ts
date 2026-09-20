@@ -7,10 +7,13 @@ export default defineConfig({
     chunkSizeWarningLimit: 1600,
     rollupOptions: {
       output: {
-        manualChunks: {
-          three: ['three'],
-          r3f: ['@react-three/fiber', '@react-three/drei'],
-          gsap: ['gsap', 'lenis'],
+        manualChunks(id) {
+          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/') || id.includes('node_modules/scheduler/')) {
+            return 'react'
+          }
+          if (id.includes('node_modules/@react-three/')) return 'r3f'
+          if (id.includes('node_modules/three/')) return 'three'
+          if (id.includes('node_modules/gsap/') || id.includes('node_modules/lenis/')) return 'gsap'
         },
       },
     },

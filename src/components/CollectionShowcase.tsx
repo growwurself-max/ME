@@ -1,12 +1,12 @@
 import { Suspense, lazy, useEffect, useRef, useState } from 'react'
 import { Box, Maximize, Move3d } from 'lucide-react'
 import { CATEGORIES, FINISH_PRESETS, PRODUCTS, type Finish, type Product } from '../data/products'
-import ModelViewerModal from './three/ModelViewerModal'
 import RevealText from './RevealText'
 import TiltCard from './TiltCard'
 import { gsap, ScrollTrigger } from '../lib/smoothScroll'
 
 const Furniture3DViewer = lazy(() => import('./three/Furniture3DViewer'))
+const ModelViewerModal = lazy(() => import('./three/ModelViewerModal'))
 
 function PanelCanvas({ product }: { product: Product }) {
   const holder = useRef<HTMLDivElement>(null)
@@ -194,12 +194,14 @@ export default function CollectionShowcase() {
       </section>
 
       {selected && (
-        <ModelViewerModal
-          product={selected}
-          finish={finish}
-          onFinishChange={setFinish}
-          onClose={() => setSelected(null)}
-        />
+        <Suspense fallback={null}>
+          <ModelViewerModal
+            product={selected}
+            finish={finish}
+            onFinishChange={setFinish}
+            onClose={() => setSelected(null)}
+          />
+        </Suspense>
       )}
     </>
   )

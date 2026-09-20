@@ -1,19 +1,21 @@
 import { Suspense, lazy, useState } from 'react'
 import { ArrowDown, Sparkles } from 'lucide-react'
 import MagneticButton from './MagneticButton'
-import { LightSimulator } from './three/Furniture3DViewer'
+import LightSimulator from './three/LightSimulator'
 
 const HeroScene = lazy(() => import('./three/HeroScene'))
 
-export default function Hero() {
+export default function Hero({ sceneActive = true }: { sceneActive?: boolean }) {
   const [lightMode, setLightMode] = useState(0.5)
 
   return (
     <section id="top" className="relative h-[100svh] min-h-[620px] overflow-hidden">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_35%,#FFFFFF_0%,#FAF8F5_45%,#F2EDE4_100%)]" />
-      <Suspense fallback={null}>
-        <HeroScene lightMode={lightMode} />
-      </Suspense>
+      {sceneActive && (
+        <Suspense fallback={null}>
+          <HeroScene lightMode={lightMode} />
+        </Suspense>
+      )}
 
       <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-between py-20 text-center">
         <div className="mt-8">

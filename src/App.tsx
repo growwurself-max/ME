@@ -13,23 +13,24 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import { useSmoothScroll } from './lib/smoothScroll'
 
 export default function App() {
-  const { lenis, gsap, ScrollTrigger } = useSmoothScroll()
+  useSmoothScroll()
   const [quoteOpen, setQuoteOpen] = useState(false)
+  const [heroSceneActive, setHeroSceneActive] = useState(false)
   const openQuote = useCallback(() => setQuoteOpen(true), [])
 
-  // Sync Lenis with GSAP ticker on every frame
+  // Mount the hero 3D scene only once the intro starts fading out, so video
+  // playback and the heavy WebGL scene setup never block the main thread at
+  // the same time. A long fallback guarantees the scene still appears if the
+  // video never ends (autoplay blocked, load error, etc.).
   useEffect(() => {
-    const raf = (time: number) => {
-      lenis.current?.raf(time * 1000)
-      requestAnimationFrame(raf)
-    }
-
-    gsap.ticker.add(raf)
-
+    const activate = () => setHeroSceneActive(true)
+    window.addEventListener('intro:start-exit', activate)
+    const fallback = window.setTimeout(activate, 12000)
     return () => {
-      gsap.ticker.remove(raf)
+      window.removeEventListener('intro:start-exit', activate)
+      window.clearTimeout(fallback)
     }
-  }, [lenis])
+  }, [])
 
   return (
     <ErrorBoundary>
@@ -39,7 +40,7 @@ export default function App() {
         <Navbar />
         <main>
           <ErrorBoundary>
-            <Hero />
+            <Hero sceneActive={heroSceneActive} />
           </ErrorBoundary>
           <CollectionShowcase />
           <Gallery />
