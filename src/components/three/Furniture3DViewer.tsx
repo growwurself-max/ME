@@ -115,8 +115,8 @@ function MaterialSwatch({
       className={`glass-pill pointer-events-auto flex items-center gap-2 rounded-full px-4 py-2 text-xs font-medium tracking-wide transition-colors ${
         isSelected ? 'text-alabaster' : 'text-obsidian hover:text-teak'
       }`} style={{ background: isSelected ? primary : undefined, color: isSelected ? '#FFFFFF' : '#1F1D1A' }}>
-        {finish?.name ?? 'Default'}
-      </button>
+      {finish?.name ?? 'Default'}
+    </button>
   )
 }
 
