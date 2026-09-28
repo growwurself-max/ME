@@ -5,7 +5,6 @@ import * as THREE from 'three'
 import { useSmoothScroll } from '../../lib/smoothScroll'
 import RoomEnvironment from './RoomEnvironment'
 import { ProceduralFurniture } from './ProceduralFurniture'
-import LightweightFloatingFurniture from './LightweightFloatingFurniture'
 import { PRODUCTS, FINISH_PRESETS } from '../../data/products'
 
 function Particles({ count = 220 }: { count?: number }) {
@@ -39,18 +38,12 @@ function Particles({ count = 220 }: { count?: number }) {
 
 function ScrollRig({ children }: { children: React.ReactNode }) {
   const group = useRef<THREE.Group>(null)
-  const lenisRef = useRef<any>(null)
-
-  useEffect(() => {
-    const { lenis } = useSmoothScroll()
-    lenisRef.current = lenis
-  }, [])
 
   useFrame((state) => {
     if (!group.current) return
 
-    // Get scroll progress from Lenis
-    const currentScroll = lenisRef.current ? lenisRef.current.scroll : 0
+    // Get scroll progress from native scroll
+    const currentScroll = window.scrollY
     const doc = document.documentElement
     const maxScroll = Math.max(doc.scrollHeight - window.innerHeight, 1)
     const p = Math.min(1, currentScroll / maxScroll)
@@ -102,28 +95,6 @@ function ScrollRig({ children }: { children: React.ReactNode }) {
 export default function HeroScene({ lightMode = 0.5 }: { lightMode?: number }) {
   const sofa = PRODUCTS[0]
   const { lenis } = useSmoothScroll()
-  const [is3DActive, setIs3DActive] = useState(false)
-
-  // Listen for 3D controls activation/deactivation from touch badge
-  useEffect(() => {
-    const handleActivate = () => {
-      setIs3DActive(true)
-      document.body.style.overflow = 'hidden'
-    }
-
-    const handleDeactivate = () => {
-      setIs3DActive(false)
-      document.body.style.overflow = ''
-    }
-
-    window.addEventListener('3d-controls:activate', handleActivate)
-    window.addEventListener('3d-controls:deactivate', handleDeactivate)
-
-    return () => {
-      window.removeEventListener('3d-controls:activate', handleActivate)
-      window.removeEventListener('3d-controls:deactivate', handleDeactivate)
-    }
-  }, [])
 
   return (
     <Canvas
@@ -149,7 +120,6 @@ export default function HeroScene({ lightMode = 0.5 }: { lightMode?: number }) {
             <ProceduralFurniture product={sofa} finish={FINISH_PRESETS.velvetEmerald} />
           </ScrollRig>
         </Float>
-        <LightweightFloatingFurniture />
         <Particles />
         <Html center>
           <div className="text-teak text-sm tracking-widest">

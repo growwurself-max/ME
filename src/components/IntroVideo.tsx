@@ -4,12 +4,25 @@ export default function IntroVideo() {
   const [exiting, setExiting] = useState(false)
   const [visible, setVisible] = useState(true)
 
+  useEffect(() => {
+    // Disable scroll during intro
+    document.body.style.overflow = 'hidden'
+    return () => {
+      // Re-enable scroll when component unmounts
+      document.body.style.overflow = 'auto'
+    }
+  }, [])
+
   const handleVideoEnd = () => {
     setExiting(true)
     // Signal the app to start warming up the 3D showroom behind the fading intro.
     window.dispatchEvent(new CustomEvent('intro:start-exit'))
     // Allow fade-out transition to complete before unmounting
     setTimeout(() => setVisible(false), 1000)
+    // Ensure body scroll is enabled after intro
+    setTimeout(() => {
+      document.body.style.overflow = 'auto'
+    }, 500)
   }
 
   const handleSkip = () => {

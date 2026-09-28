@@ -2,11 +2,13 @@
   "name": "mokshaa-3d",
   "private": true,
   "version": "1.0.0",
+  "description": "Mokshaa Enterprises - Luxury custom furniture website with 3D showroom experience",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@react-three/drei": "^9.114.0",
@@ -29,5 +31,16 @@
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.1",
     "@types/three": "^0.169.0"
-  }
+  },
+  "keywords": [
+    "furniture",
+    "3d",
+    "showroom",
+    "luxury",
+    "custom-furniture",
+    "react",
+    "threejs"
+  ],
+  "author": "Mokshaa Enterprises",
+  "license": "PRIVATE"
 }

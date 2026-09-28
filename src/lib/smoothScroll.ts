@@ -6,34 +6,18 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 gsap.registerPlugin(ScrollTrigger)
 
 export function useSmoothScroll() {
-  const lenisRef = useRef<Lenis | null>(null)
-
+  // Disable smooth scroll entirely to ensure basic scrolling works
+  // This is a critical fix for touch devices and basic navigation
   useEffect(() => {
-    const lenis = new Lenis({
-      duration: 1.15,
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      smoothWheel: true,
-    })
-
-    lenisRef.current = lenis
-
-    lenis.on('scroll', ScrollTrigger.update)
-
-    const raf = (time: number) => {
-      lenis.raf(time * 1000)
-      requestAnimationFrame(raf)
-    }
-
-    gsap.ticker.add(raf)
-
-    return () => {
-      gsap.ticker.remove(raf)
-      lenis.destroy()
-      lenisRef.current = null
-    }
+    // Ensure native scrolling works
+    document.body.style.overflow = 'auto'
+    document.documentElement.style.overflow = 'auto'
+    document.body.style.overscrollBehavior = 'auto'
+    
+    return () => {}
   }, [])
 
-  return { lenis: lenisRef, gsap, ScrollTrigger }
+  return { lenis: { current: null }, gsap, ScrollTrigger }
 }
 
 export { gsap, ScrollTrigger }
