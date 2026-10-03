@@ -67,7 +67,7 @@ export function SiteHeader() {
           </nav>
 
           <div className="flex items-center gap-2">
-            <Button href="#platforms" size="sm" className="hidden sm:inline-flex">
+            <Button href="#products" size="sm" className="hidden sm:inline-flex">
               Explore work
             </Button>
 

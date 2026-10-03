@@ -140,8 +140,13 @@
   --animate-fade-up: fade-up 0.7s var(--ease-out-expo) both;
   --animate-scale-in: scale-in 0.5s var(--ease-out-expo) both;
   --animate-drift: drift 22s var(--ease-in-out-soft) infinite;
+  --animate-drift-slow: drift 34s var(--ease-in-out-soft) infinite reverse;
   --animate-marquee: marquee 38s linear infinite;
   --animate-pulse-ring: pulse-ring 2.6s var(--ease-in-out-soft) infinite;
+  --animate-float-a: float-a 9s var(--ease-in-out-soft) infinite;
+  --animate-float-b: float-b 11.5s var(--ease-in-out-soft) infinite;
+  --animate-float-c: float-c 14s var(--ease-in-out-soft) infinite;
+  --animate-shimmer: shimmer 3.2s var(--ease-in-out-soft) infinite;
 }
 
 @keyframes fade-in {
@@ -203,6 +208,46 @@
   100% {
     transform: scale(1.6);
     opacity: 0;
+  }
+}
+
+/* Layered float loops. Uses `translate` so it never fights motion transforms. */
+@keyframes float-a {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -14px;
+  }
+}
+
+@keyframes float-b {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 12px;
+  }
+}
+
+@keyframes float-c {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 6px -9px;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translate3d(-120%, 0, 0);
+  }
+  100% {
+    transform: translate3d(120%, 0, 0);
   }
 }
 
